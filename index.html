@@ -172,6 +172,31 @@
   .flowline .chip{padding:5px 12px;border-radius:20px;color:#fff;font-size:14px}
   .flowline .arrow{color:var(--muted);font-size:18px}
 
+  .syncpill{display:inline-flex;align-items:center;font-size:12.5px;font-weight:600;padding:9px 12px;border-radius:11px;border:1px solid var(--line);background:var(--card);box-shadow:var(--shadow);color:var(--muted)}
+  .syncpill:empty{display:none}
+  .syncpill.ok{color:var(--good);border-color:var(--good)}
+  .syncpill.syncing{color:var(--transfer)}
+  .syncpill.pending{color:var(--bad)}
+  .syncpill.error{color:var(--bad);border-color:var(--bad)}
+  .switch-row{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px;background:var(--paper);border-radius:12px;margin:4px 0 14px}
+  .switch-title{font-weight:600;font-size:14px}
+  .switch-sub{font-size:12px;color:var(--muted);margin-top:2px}
+  .switch{width:46px;height:27px;border-radius:20px;background:var(--line);position:relative;transition:.15s;flex:none;padding:0}
+  .switch .knob{position:absolute;top:3px;left:3px;width:21px;height:21px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.2);transition:.15s}
+  .switch.on{background:var(--accent)}
+  .switch.on .knob{left:22px}
+  .cfg-divider{height:1px;background:var(--line);margin:16px 0}
+  .cfg-sync-btns{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .cfg-btn{padding:13px;border-radius:12px;font-weight:700;font-size:14px;border:1px solid var(--line);transition:.15s}
+  .cfg-btn.up{background:var(--accent);color:#fff;border-color:transparent}
+  .cfg-btn.down{background:var(--card);color:var(--ink)}
+  .cfg-btn:hover{filter:brightness(.97)}
+  .cfg-status{font-size:13px;font-weight:600;margin:2px 0 12px}
+  .cfg-status.ok{color:var(--good)} .cfg-status.err{color:var(--bad)}
+  .sql-details{margin-top:16px;border-top:1px solid var(--line);padding-top:12px}
+  .sql-details summary{font-weight:600;font-size:14px;cursor:pointer;color:var(--accent)}
+  .sql-box{background:#1c2630;color:#e6edf3;padding:12px;border-radius:10px;font-size:12px;overflow:auto;margin-top:10px;white-space:pre;font-family:ui-monospace,Menlo,monospace;line-height:1.45}
+  .toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:var(--ink);color:#fff;padding:12px 18px;border-radius:12px;font-weight:600;font-size:14px;z-index:100;box-shadow:0 8px 30px rgba(0,0,0,.3);animation:pop .18s ease}
   .loading{display:flex;align-items:center;justify-content:center;height:70vh;color:var(--muted);font-size:15px}
 
   @media (max-width:760px){
@@ -264,8 +289,44 @@
     </div>
   </div>
 
+  <!-- Modal configuración -->
+  <div class="modal-bg" id="setModal">
+    <div class="modal">
+      <div class="modal-head"><h3>Configuración · Supabase</h3>
+        <button class="closebtn" onclick="closeSettings()" aria-label="Cerrar">✕</button></div>
+      <div class="modal-body">
+        <p class="modal-note">Conecta la app a tu proyecto de Supabase para guardar los datos en la nube y compartirlos entre dispositivos. Usa el <b>mismo ID de sincronización</b> en cada dispositivo para que ambos vean la misma información. En un dispositivo nuevo, pulsa <b>Descargar</b> antes de activar el guardado automático.</p>
+        <div class="field" style="margin-bottom:10px"><label>URL del proyecto</label><input id="cfg_url" placeholder="https://xxxxxxxx.supabase.co"></div>
+        <div class="field" style="margin-bottom:10px"><label>Clave pública (anon key)</label><input id="cfg_key" type="password" placeholder="eyJhbGciOiJIUzI1..."></div>
+        <div class="field" style="margin-bottom:12px"><label>ID de sincronización (compártelo entre los dos)</label><input id="cfg_sync" placeholder="ej: hogar-8f3k2"></div>
+        <div class="switch-row">
+          <div><div class="switch-title">Guardado automático en la nube</div><div class="switch-sub">Sube los cambios solo, después de cada movimiento</div></div>
+          <button class="switch" id="cfg_auto" onclick="toggleAuto()" role="switch" aria-label="Guardado automático"><span class="knob"></span></button>
+        </div>
+        <div class="cfg-status" id="setMsg"></div>
+        <div class="modal-actions">
+          <button class="btn-primary" onclick="saveSettings()">Guardar configuración</button>
+          <button class="btn-ghost" onclick="testConn()">Probar conexión</button>
+        </div>
+        <div class="cfg-divider"></div>
+        <div class="cfg-sync-btns">
+          <button class="cfg-btn up" onclick="doUpload()">⬆ Subir a la nube</button>
+          <button class="cfg-btn down" onclick="doDownload()">⬇ Descargar de la nube</button>
+        </div>
+        <p class="modal-note" id="lastSyncNote" style="margin-top:10px"></p>
+        <details class="sql-details">
+          <summary>¿Primera vez? Crea la tabla en Supabase</summary>
+          <p class="modal-note" style="margin-top:10px">En Supabase entra a <b>SQL Editor</b>, pega esto y pulsa <b>Run</b> una sola vez:</p>
+          <pre class="sql-box" id="sqlBox"></pre>
+          <button class="btn-ghost" onclick="copySql()" style="margin-top:8px">Copiar SQL</button>
+        </details>
+      </div>
+    </div>
+  </div>
+
 <script>
 const STORE_KEY='cuentas_pareja_v1';
+const CFG_KEY='cuentas_pareja_cfg';
 const _mem={};
 async function storageGet(k){
   if(window.storage&&window.storage.get){ try{const r=await window.storage.get(k,false); if(r)return r.value;}catch(e){} }
@@ -305,15 +366,16 @@ let data=null, active='brandon';
 let form={type:'gasto',editingId:null};
 let filters={search:'',type:'todos',cat:'todas'};
 let monthSel='todos', catKind='gasto', newIcon='🛒';
+let cfg={url:'',key:'',syncId:'',table:'cuentas_pareja',autoSync:false};
 
-async function save(){ await storageSet(STORE_KEY,JSON.stringify(data)); }
+async function save(){ await storageSet(STORE_KEY,JSON.stringify(data)); scheduleCloudPush(); }
 
 async function init(){
+  loadCfg();
   const raw=await storageGet(STORE_KEY);
   if(raw){ try{data=JSON.parse(raw);}catch(e){data=null;} }
-  if(!data||!data.accounts){ data={accounts:{brandon:newAccount(),laura:newAccount(),pareja:newAccount()}}; }
-  ['brandon','laura','pareja'].forEach(k=>{ if(!data.accounts[k]) data.accounts[k]=newAccount(); if(typeof data.accounts[k].patrimonioBase!=='number') data.accounts[k].patrimonioBase=0; });
-  await save();
+  ensureShape();
+  await storageSet(STORE_KEY,JSON.stringify(data));
   render();
 }
 
@@ -344,6 +406,8 @@ function render(){
     <header class="top"><div class="wrap"><div class="brandline">
       <div class="title"><h1>Cuentas en pareja</h1><p>Ingresos, gastos y patrimonio de ${accountName(active)}</p></div>
       <div class="toolbtns">
+        <span id="syncStatus" class="syncpill ${syncState}">${syncText(syncState)}</span>
+        <button class="toolbtn" onclick="openSettings()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>Configuración</button>
         <button class="toolbtn" onclick="openCat()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 7h.01M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/></svg>Categorías</button>
         <button class="toolbtn" onclick="exportData()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>Exportar</button>
       </div></div></div></header>
@@ -576,11 +640,126 @@ function exportData(){
   const a=document.createElement('a'); a.href=url; a.download='cuentas-en-pareja.csv'; a.click(); URL.revokeObjectURL(url);
 }
 
+/* ---------- Supabase / sincronización ---------- */
+const SQL_TEXT=`create table if not exists cuentas_pareja (
+  id text primary key,
+  data jsonb,
+  updated_at timestamptz default now()
+);
+
+alter table cuentas_pareja enable row level security;
+
+create policy "acceso con anon key"
+  on cuentas_pareja for all
+  using (true) with check (true);`;
+
+function loadCfg(){ try{ const r=localStorage.getItem(CFG_KEY); if(r) cfg=Object.assign(cfg,JSON.parse(r)); }catch(e){} }
+function saveCfg(){ try{ localStorage.setItem(CFG_KEY,JSON.stringify(cfg)); }catch(e){} }
+
+function ensureShape(){
+  if(!data||!data.accounts){ data={accounts:{brandon:newAccount(),laura:newAccount(),pareja:newAccount()}}; }
+  ['brandon','laura','pareja'].forEach(k=>{ if(!data.accounts[k])data.accounts[k]=newAccount(); const a=data.accounts[k]; if(typeof a.patrimonioBase!=='number')a.patrimonioBase=0; if(!Array.isArray(a.categories))a.categories=defaultCats(); if(!Array.isArray(a.transactions))a.transactions=[]; });
+}
+
+const sbBase=()=>cfg.url.replace(/\/+$/,'');
+function sbHeaders(){ return {'apikey':cfg.key,'Authorization':'Bearer '+cfg.key,'Content-Type':'application/json'}; }
+function sbReady(){ return !!(cfg.url&&cfg.key&&cfg.syncId); }
+
+async function cloudPush(){
+  if(!sbReady()) throw new Error('Falta configurar Supabase.');
+  const res=await fetch(sbBase()+'/rest/v1/'+cfg.table,{method:'POST',headers:Object.assign(sbHeaders(),{'Prefer':'resolution=merge-duplicates,return=minimal'}),body:JSON.stringify([{id:cfg.syncId,data:data,updated_at:new Date().toISOString()}])});
+  if(!res.ok) throw new Error(res.status+' '+(await res.text()).slice(0,140));
+}
+async function cloudPull(){
+  if(!sbReady()) throw new Error('Falta configurar Supabase.');
+  const res=await fetch(sbBase()+'/rest/v1/'+cfg.table+'?id=eq.'+encodeURIComponent(cfg.syncId)+'&select=data,updated_at',{headers:sbHeaders()});
+  if(!res.ok) throw new Error(res.status+' '+(await res.text()).slice(0,140));
+  const rows=await res.json();
+  if(!rows.length) throw new Error('No hay datos en la nube con ese ID de sincronización.');
+  return rows[0].data;
+}
+
+let syncState='idle', pushTimer=null, lastSync=0;
+function syncText(s){
+  if(s==='pending')return '● Cambios sin subir';
+  if(s==='syncing')return '⟳ Sincronizando…';
+  if(s==='ok')return '☁ Sincronizado';
+  if(s==='error')return '⚠ Error de sync';
+  return (cfg.autoSync&&sbReady())?'☁ Nube lista':'';
+}
+function setSyncStatus(s){ syncState=s; if(s==='ok')lastSync=Date.now(); const el=document.getElementById('syncStatus'); if(el){ el.className='syncpill '+s; el.textContent=syncText(s); } const ln=document.getElementById('lastSyncNote'); if(ln&&lastSync)ln.textContent='Última sincronización: '+new Date(lastSync).toLocaleString('es-CO'); }
+function scheduleCloudPush(){
+  if(!cfg.autoSync||!sbReady())return;
+  setSyncStatus('pending'); clearTimeout(pushTimer);
+  pushTimer=setTimeout(async()=>{ setSyncStatus('syncing'); try{ await cloudPush(); setSyncStatus('ok'); }catch(e){ setSyncStatus('error'); } },1500);
+}
+
+function openSettings(){
+  document.getElementById('cfg_url').value=cfg.url||'';
+  document.getElementById('cfg_key').value=cfg.key||'';
+  if(!cfg.syncId) cfg.syncId='hogar-'+Math.random().toString(36).slice(2,7);
+  document.getElementById('cfg_sync').value=cfg.syncId;
+  document.getElementById('cfg_auto').classList.toggle('on',!!cfg.autoSync);
+  document.getElementById('sqlBox').textContent=SQL_TEXT;
+  setSettingsMsg('',null);
+  const ln=document.getElementById('lastSyncNote'); if(ln)ln.textContent=lastSync?('Última sincronización: '+new Date(lastSync).toLocaleString('es-CO')):'';
+  document.getElementById('setModal').classList.add('show');
+}
+function closeSettings(){ document.getElementById('setModal').classList.remove('show'); }
+function toggleAuto(){ document.getElementById('cfg_auto').classList.toggle('on'); }
+function setSettingsMsg(t,ok){ const el=document.getElementById('setMsg'); if(!el)return; el.textContent=t||''; el.className='cfg-status'+(ok===true?' ok':ok===false?' err':''); }
+
+function saveSettings(){
+  cfg.url=document.getElementById('cfg_url').value.trim();
+  cfg.key=document.getElementById('cfg_key').value.trim();
+  cfg.syncId=document.getElementById('cfg_sync').value.trim();
+  cfg.autoSync=document.getElementById('cfg_auto').classList.contains('on');
+  saveCfg();
+  setSettingsMsg('Configuración guardada ✓',true);
+  setSyncStatus('idle');
+}
+
+async function testConn(){
+  const url=document.getElementById('cfg_url').value.trim(), key=document.getElementById('cfg_key').value.trim();
+  if(!url||!key){ setSettingsMsg('Escribe la URL y la clave anon.',false); return; }
+  setSettingsMsg('Probando…',null);
+  try{
+    const res=await fetch(url.replace(/\/+$/,'')+'/rest/v1/'+cfg.table+'?select=id&limit=1',{headers:{'apikey':key,'Authorization':'Bearer '+key}});
+    if(res.ok) setSettingsMsg('Conexión correcta ✓ La tabla responde.',true);
+    else if(res.status===404) setSettingsMsg('Conecta bien, pero falta la tabla "cuentas_pareja". Corre el SQL de abajo.',false);
+    else setSettingsMsg('Respuesta '+res.status+'. Revisa la clave o las políticas (RLS).',false);
+  }catch(e){ setSettingsMsg('No se pudo conectar. Revisa la URL del proyecto.',false); }
+}
+
+async function doUpload(){
+  saveSettings();
+  if(!sbReady()){ setSettingsMsg('Completa URL, clave e ID primero.',false); return; }
+  setSettingsMsg('Subiendo…',null); setSyncStatus('syncing');
+  try{ await cloudPush(); setSyncStatus('ok'); setSettingsMsg('Datos subidos a la nube ✓',true); toast('Datos subidos a la nube'); }
+  catch(e){ setSyncStatus('error'); setSettingsMsg('No se pudo subir: '+e.message,false); }
+}
+async function doDownload(){
+  saveSettings();
+  if(!sbReady()){ setSettingsMsg('Completa URL, clave e ID primero.',false); return; }
+  if(!confirm('Descargar reemplazará los datos de ESTE dispositivo con los de la nube. ¿Continuar?')) return;
+  setSettingsMsg('Descargando…',null); setSyncStatus('syncing');
+  try{
+    const remote=await cloudPull();
+    data=remote; ensureShape();
+    await storageSet(STORE_KEY,JSON.stringify(data));
+    setSyncStatus('ok'); setSettingsMsg('Datos descargados ✓',true); toast('Datos descargados de la nube');
+    render();
+  }catch(e){ setSyncStatus('error'); setSettingsMsg('No se pudo descargar: '+e.message,false); }
+}
+
+function copySql(){ if(navigator.clipboard){ navigator.clipboard.writeText(SQL_TEXT).then(()=>toast('SQL copiado')).catch(()=>{}); } }
+function toast(msg){ const t=document.createElement('div'); t.className='toast'; t.textContent=msg; document.body.appendChild(t); setTimeout(()=>t.remove(),2600); }
+
 function escapeHtml(s){ return String(s).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])); }
 function escapeAttr(s){ return escapeHtml(s); }
 
-['catModal','patModal','trModal'].forEach(id=>document.getElementById(id).addEventListener('click',e=>{ if(e.target.id===id){ if(id==='catModal')closeCat(); else if(id==='patModal')closePat(); else closeTransfer(); } }));
-document.addEventListener('keydown',e=>{ if(e.key==='Escape'){ closeCat(); closePat(); closeTransfer(); } });
+['catModal','patModal','trModal','setModal'].forEach(id=>document.getElementById(id).addEventListener('click',e=>{ if(e.target.id===id){ closeCat(); closePat(); closeTransfer(); closeSettings(); } }));
+document.addEventListener('keydown',e=>{ if(e.key==='Escape'){ closeCat(); closePat(); closeTransfer(); closeSettings(); } });
 document.addEventListener('input',e=>{
   const el=e.target; if(!(el.classList&&el.classList.contains('money-in')))return;
   const caret=el.selectionStart, prev=el.value;
