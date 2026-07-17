@@ -151,9 +151,13 @@
   .emoji-in{text-align:center;font-size:18px}
   .miniadd{padding:11px 14px;border-radius:10px;background:var(--accent);color:#fff;font-weight:700;font-size:14px;white-space:nowrap}
   .cat-extra{display:grid;grid-template-columns:auto 1fr;gap:10px;align-items:center;margin:6px 0 14px;font-size:13px;color:var(--muted)}
-  .swatches{display:flex;gap:6px;flex-wrap:wrap;margin:8px 0 14px}
-  .sw{width:26px;height:26px;border-radius:8px;border:2px solid transparent;cursor:pointer}
-  .sw.on{border-color:var(--ink)}
+  .cat-add2{display:grid;grid-template-columns:1fr auto;gap:8px;align-items:end;margin-bottom:12px}
+  .cat-add2 input{padding:11px 12px;border-radius:11px;border:1px solid var(--line)}
+  .picker-label{font-size:12px;font-weight:600;color:var(--muted);display:block;margin-bottom:6px}
+  .icon-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(44px,1fr));gap:6px;max-height:210px;overflow:auto;margin-bottom:14px;padding:2px}
+  .icon-opt{aspect-ratio:1;display:flex;align-items:center;justify-content:center;font-size:21px;border-radius:11px;background:var(--paper);border:2px solid transparent;cursor:pointer;transition:.1s}
+  .icon-opt:hover{background:var(--line-soft)}
+  .icon-opt.on{border-color:var(--accent);background:var(--accent-soft)}
   .cat-list{display:flex;flex-direction:column;gap:4px;max-height:280px;overflow:auto;margin-top:6px}
   .cat-item{display:flex;align-items:center;gap:10px;padding:9px 8px;border-radius:10px}
   .cat-item:hover{background:var(--paper)}
@@ -200,16 +204,16 @@
           <button data-kind="gasto" class="on" onclick="setCatKind('gasto')">Gastos</button>
           <button data-kind="ingreso" onclick="setCatKind('ingreso')">Ingresos</button>
         </div>
-        <div class="cat-add">
-          <div class="field"><label>Icono</label><input class="emoji-in" id="newEmoji" value="🏷️" maxlength="2"></div>
+        <div class="cat-add2">
           <div class="field"><label>Nombre de la categoría</label><input id="newCatName" placeholder="Ej: Restaurantes"></div>
           <button class="miniadd" onclick="addCategory()">Añadir</button>
         </div>
-        <div class="swatches" id="swatches"></div>
+        <label class="picker-label">Elige un icono</label>
+        <div class="icon-grid" id="iconGrid"></div>
         <div class="cat-extra" id="budgetWrap">
           <span>Presupuesto mensual (opcional)</span>
           <div class="amountwrap" style="max-width:170px"><span>$</span>
-            <input id="newBudget" class="num" inputmode="numeric" placeholder="0" style="padding-left:24px"></div>
+            <input id="newBudget" class="num money-in" inputmode="numeric" placeholder="0" style="padding-left:24px"></div>
         </div>
         <div class="cat-list" id="catList"></div>
       </div>
@@ -224,7 +228,7 @@
       <div class="modal-body">
         <p class="modal-note">Escribe el capital o ahorros con los que parte esta cuenta. A partir de ahí, cada ingreso, gasto y aporte ajusta el patrimonio automáticamente.</p>
         <div class="field"><label>Patrimonio inicial</label>
-          <div class="amountwrap"><span>$</span><input id="pat_amount" class="num" inputmode="numeric" placeholder="0" style="padding-left:26px"></div>
+          <div class="amountwrap"><span>$</span><input id="pat_amount" class="num money-in" inputmode="numeric" placeholder="0" style="padding-left:26px"></div>
         </div>
         <div class="modal-actions">
           <button class="btn-primary" onclick="savePat()">Guardar</button>
@@ -248,7 +252,7 @@
         <p class="modal-note">Este aporte sale del patrimonio de <span id="trFromName">Brandon</span> y entra al patrimonio compartido de Pareja.</p>
         <div class="frow" style="grid-template-columns:1fr 1fr">
           <div class="field"><label>Monto a enviar</label>
-            <div class="amountwrap"><span>$</span><input id="tr_amount" class="num" inputmode="numeric" placeholder="0" style="padding-left:26px"></div></div>
+            <div class="amountwrap"><span>$</span><input id="tr_amount" class="num money-in" inputmode="numeric" placeholder="0" style="padding-left:26px"></div></div>
           <div class="field"><label>Fecha</label><input id="tr_date" type="date"></div>
           <div class="field desc" style="grid-column:1/-1"><label>Nota (opcional)</label><input id="tr_desc" placeholder="Ej: Aporte para el arriendo"></div>
         </div>
@@ -277,12 +281,14 @@ async function storageSet(k,v){
 const uid=()=>'id'+Date.now().toString(36)+Math.random().toString(36).slice(2,6);
 const COP=new Intl.NumberFormat('es-CO',{style:'currency',currency:'COP',maximumFractionDigits:0});
 const money=n=>COP.format(Math.round(n||0));
+function groupThousands(d){ d=String(d).replace(/\D/g,''); return d.replace(/\B(?=(\d{3})+(?!\d))/g,'.'); }
 const todayISO=()=>new Date().toISOString().slice(0,10);
 const monthOf=iso=>(iso||'').slice(0,7);
 const MESES=['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
 function monthLabel(ym){ if(!ym)return''; const[y,m]=ym.split('-'); return MESES[+m-1]+' '+y; }
 function fmtDate(iso){ const[y,m,d]=iso.split('-'); return d+' '+MESES[+m-1]; }
 const PALETTE=['#147D7A','#CF4E7C','#7857A8','#E08D3C','#3C7DD9','#2E8C6A','#C4483F','#B0752F','#8A5CD1','#D14F8C','#4CA1A3','#6C7A2E','#B4562E','#5B6EE0','#A8437A','#3F9E7B'];
+const ICONS=['🛒','🍽️','🍔','🍕','☕','🍺','🥗','🍎','🚗','⛽','🚕','🚌','🚆','✈️','🏠','🛋️','🔧','🧹','💡','💧','🔥','📱','💻','📶','📺','🏥','💊','🩺','🦷','🎉','🎬','🎮','🎵','🎸','📚','✏️','🎓','👕','👟','👗','💄','💈','🐾','🐶','🐱','🎁','💝','💰','💵','🏦','💳','📈','🏋️','🧘','⚽','🏖️','🧳','🎨','🔨','🌱','🎂','👶','🍼','💒','💐','🚬','☂️','🧾','🪥','🧴'];
 const ACCENTS={brandon:'#147D7A',laura:'#CF4E7C',pareja:'#7857A8'};
 
 function defaultCats(){
@@ -298,7 +304,7 @@ function newAccount(){ return {patrimonioBase:0,categories:defaultCats(),transac
 let data=null, active='brandon';
 let form={type:'gasto',editingId:null};
 let filters={search:'',type:'todos',cat:'todas'};
-let monthSel='todos', catKind='gasto', newColor=PALETTE[0];
+let monthSel='todos', catKind='gasto', newIcon='🛒';
 
 async function save(){ await storageSet(STORE_KEY,JSON.stringify(data)); }
 
@@ -396,7 +402,7 @@ function formHTML(){
         <button data-t="ingreso" class="${form.type==='ingreso'?'on':''}" onclick="setFormType('ingreso')">Ingreso</button>
       </div></div>
     <div class="frow">
-      <div class="field"><label>Monto</label><div class="amountwrap"><span>$</span><input id="f_amount" class="num" inputmode="numeric" placeholder="0" value="${editing?editing.amount:''}"></div></div>
+      <div class="field"><label>Monto</label><div class="amountwrap"><span>$</span><input id="f_amount" class="num money-in" inputmode="numeric" placeholder="0" value="${editing?groupThousands(editing.amount):''}"></div></div>
       <div class="field"><label>Categoría</label><select id="f_cat">
         ${cats.map(c=>`<option value="${c.id}" ${editing&&editing.categoryId===c.id?'selected':''}>${c.emoji} ${c.name}</option>`).join('')}
         ${cats.length===0?'<option value="">Crea una categoría primero</option>':''}</select></div>
@@ -523,7 +529,7 @@ async function delTx(id){
 }
 
 /* patrimonio */
-function openPat(){ document.getElementById('patWho').textContent=accountName(active); document.getElementById('pat_amount').value=acc().patrimonioBase||''; document.getElementById('patModal').classList.add('show'); setTimeout(()=>document.getElementById('pat_amount').focus(),50); }
+function openPat(){ document.getElementById('patWho').textContent=accountName(active); document.getElementById('pat_amount').value=acc().patrimonioBase?groupThousands(acc().patrimonioBase):''; document.getElementById('patModal').classList.add('show'); setTimeout(()=>document.getElementById('pat_amount').focus(),50); }
 function closePat(){ document.getElementById('patModal').classList.remove('show'); }
 async function savePat(){ acc().patrimonioBase=parseAmount(document.getElementById('pat_amount').value); await save(); closePat(); render(); }
 
@@ -543,14 +549,14 @@ async function sendTransfer(){
 }
 
 /* categorías */
-function openCat(){ document.getElementById('catModalWho').textContent=accountName(active); catKind='gasto'; newColor=PALETTE[0]; document.querySelectorAll('.cat-tabs button').forEach(b=>b.classList.toggle('on',b.dataset.kind==='gasto')); renderSwatches(); renderCatList(); updateBudgetVisibility(); document.getElementById('catModal').classList.add('show'); }
+function openCat(){ document.getElementById('catModalWho').textContent=accountName(active); catKind='gasto'; newIcon='🛒'; document.querySelectorAll('.cat-tabs button').forEach(b=>b.classList.toggle('on',b.dataset.kind==='gasto')); renderIconGrid(); renderCatList(); updateBudgetVisibility(); document.getElementById('catModal').classList.add('show'); }
 function closeCat(){ document.getElementById('catModal').classList.remove('show'); }
 function setCatKind(k){ catKind=k; document.querySelectorAll('.cat-tabs button').forEach(b=>b.classList.toggle('on',b.dataset.kind===k)); updateBudgetVisibility(); renderCatList(); }
 function updateBudgetVisibility(){ document.getElementById('budgetWrap').style.display=catKind==='gasto'?'grid':'none'; }
-function renderSwatches(){ document.getElementById('swatches').innerHTML=PALETTE.map(c=>`<div class="sw ${c===newColor?'on':''}" style="background:${c}" onclick="pickColor('${c}')"></div>`).join(''); }
-function pickColor(c){ newColor=c; renderSwatches(); }
+function renderIconGrid(){ document.getElementById('iconGrid').innerHTML=ICONS.map((ic,i)=>`<button type="button" class="icon-opt ${ic===newIcon?'on':''}" onclick="pickIcon(${i})">${ic}</button>`).join(''); }
+function pickIcon(i){ newIcon=ICONS[i]; renderIconGrid(); }
 function renderCatList(){ const cats=acc().categories.filter(c=>c.kind===catKind); document.getElementById('catList').innerHTML=cats.map(c=>`<div class="cat-item"><div class="cic" style="background:${c.color}22;color:${c.color}">${c.emoji}</div><div class="cn">${c.name}${c.kind==='gasto'&&c.budget>0?` · <span style="color:var(--muted);font-weight:600;font-size:12px">${money(c.budget)}/mes</span>`:''}</div><button class="iconbtn" onclick="delCategory('${c.id}')" aria-label="Eliminar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m2 0v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/></svg></button></div>`).join('')||'<div class="empty" style="padding:20px"><p>No hay categorías de este tipo.</p></div>'; }
-async function addCategory(){ const name=document.getElementById('newCatName').value.trim(); const emoji=document.getElementById('newEmoji').value.trim()||'🏷️'; const budget=catKind==='gasto'?parseAmount(document.getElementById('newBudget').value):0; if(!name){alert('Escribe un nombre para la categoría.');return;} acc().categories.push({id:uid(),emoji,name,kind:catKind,color:newColor,budget}); document.getElementById('newCatName').value=''; document.getElementById('newEmoji').value='🏷️'; const nb=document.getElementById('newBudget'); if(nb)nb.value=''; await save(); renderCatList(); render(); document.getElementById('catModal').classList.add('show'); }
+async function addCategory(){ const name=document.getElementById('newCatName').value.trim(); const budget=catKind==='gasto'?parseAmount(document.getElementById('newBudget').value):0; if(!name){alert('Escribe un nombre para la categoría.');return;} const color=PALETTE[acc().categories.length%PALETTE.length]; acc().categories.push({id:uid(),emoji:newIcon,name,kind:catKind,color,budget}); document.getElementById('newCatName').value=''; const nb=document.getElementById('newBudget'); if(nb)nb.value=''; await save(); renderCatList(); render(); document.getElementById('catModal').classList.add('show'); }
 async function delCategory(id){ const inUse=acc().transactions.some(t=>t.categoryId===id); const msg=inUse?'Esta categoría tiene movimientos. Se eliminará la categoría pero los movimientos quedarán como "Sin categoría". ¿Continuar?':'¿Eliminar esta categoría?'; if(!confirm(msg))return; acc().categories=acc().categories.filter(c=>c.id!==id); await save(); renderCatList(); render(); document.getElementById('catModal').classList.add('show'); }
 
 /* exportar */
@@ -575,6 +581,15 @@ function escapeAttr(s){ return escapeHtml(s); }
 
 ['catModal','patModal','trModal'].forEach(id=>document.getElementById(id).addEventListener('click',e=>{ if(e.target.id===id){ if(id==='catModal')closeCat(); else if(id==='patModal')closePat(); else closeTransfer(); } }));
 document.addEventListener('keydown',e=>{ if(e.key==='Escape'){ closeCat(); closePat(); closeTransfer(); } });
+document.addEventListener('input',e=>{
+  const el=e.target; if(!(el.classList&&el.classList.contains('money-in')))return;
+  const caret=el.selectionStart, prev=el.value;
+  const dcount=prev.slice(0,caret).replace(/\D/g,'').length;
+  const out=prev.replace(/\D/g,'').replace(/\B(?=(\d{3})+(?!\d))/g,'.');
+  el.value=out;
+  let pos=0,c=0; while(pos<out.length&&c<dcount){ const ch=out.charCodeAt(pos); if(ch>=48&&ch<=57)c++; pos++; }
+  try{ el.setSelectionRange(pos,pos); }catch(_){}
+});
 init();
 </script>
 </body>
