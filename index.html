@@ -158,6 +158,10 @@
   .icon-opt{aspect-ratio:1;display:flex;align-items:center;justify-content:center;font-size:21px;border-radius:11px;background:var(--paper);border:2px solid transparent;cursor:pointer;transition:.1s}
   .icon-opt:hover{background:var(--line-soft)}
   .icon-opt.on{border-color:var(--accent);background:var(--accent-soft)}
+  .cat-item{cursor:pointer}
+  .cat-item.editing{background:var(--accent-soft);box-shadow:inset 3px 0 0 var(--accent)}
+  .edit-banner{display:flex;align-items:center;justify-content:space-between;gap:10px;background:var(--accent-soft);border:1px solid var(--accent);color:var(--accent);font-weight:600;font-size:13px;padding:9px 12px;border-radius:10px;margin-bottom:12px}
+  .edit-banner button{font-weight:700;color:var(--accent);text-decoration:underline;font-size:13px}
   .cat-list{display:flex;flex-direction:column;gap:4px;max-height:280px;overflow:auto;margin-top:6px}
   .cat-item{display:flex;align-items:center;gap:10px;padding:9px 8px;border-radius:10px}
   .cat-item:hover{background:var(--paper)}
@@ -229,9 +233,10 @@
           <button data-kind="gasto" class="on" onclick="setCatKind('gasto')">Gastos</button>
           <button data-kind="ingreso" onclick="setCatKind('ingreso')">Ingresos</button>
         </div>
+        <div class="edit-banner" id="catEditBanner" style="display:none"><span id="catEditText">Editando categoría</span><button type="button" onclick="cancelEditCat()">Cancelar</button></div>
         <div class="cat-add2">
           <div class="field"><label>Nombre de la categoría</label><input id="newCatName" placeholder="Ej: Restaurantes"></div>
-          <button class="miniadd" onclick="addCategory()">Añadir</button>
+          <button class="miniadd" id="catSubmitBtn" onclick="submitCategory()">Añadir</button>
         </div>
         <label class="picker-label">Elige un icono</label>
         <div class="icon-grid" id="iconGrid"></div>
@@ -314,6 +319,9 @@
           <button class="cfg-btn down" onclick="doDownload()">⬇ Descargar de la nube</button>
         </div>
         <p class="modal-note" id="lastSyncNote" style="margin-top:10px"></p>
+        <div class="cfg-divider"></div>
+        <div class="switch-title" style="margin-bottom:8px">Copia de seguridad</div>
+        <button class="btn-ghost" onclick="exportData()" style="width:100%"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:15px;height:15px;vertical-align:-2px;margin-right:6px"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>Exportar todo a CSV</button>
         <details class="sql-details">
           <summary>¿Primera vez? Crea la tabla en Supabase</summary>
           <p class="modal-note" style="margin-top:10px">En Supabase entra a <b>SQL Editor</b>, pega esto y pulsa <b>Run</b> una sola vez:</p>
@@ -365,7 +373,7 @@ function newAccount(){ return {patrimonioBase:0,categories:defaultCats(),transac
 let data=null, active='brandon';
 let form={type:'gasto',editingId:null};
 let filters={search:'',type:'todos',cat:'todas'};
-let monthSel='todos', catKind='gasto', newIcon='🛒';
+let monthSel='todos', catKind='gasto', newIcon='🛒', editingCatId=null;
 let cfg={url:'',key:'',syncId:'',table:'cuentas_pareja',autoSync:false};
 
 async function save(){ await storageSet(STORE_KEY,JSON.stringify(data)); scheduleCloudPush(); }
@@ -409,7 +417,6 @@ function render(){
         <span id="syncStatus" class="syncpill ${syncState}">${syncText(syncState)}</span>
         <button class="toolbtn" onclick="openSettings()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>Configuración</button>
         <button class="toolbtn" onclick="openCat()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 7h.01M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/></svg>Categorías</button>
-        <button class="toolbtn" onclick="exportData()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>Exportar</button>
       </div></div></div></header>
 
     <div class="switcher"><div class="wrap"><div class="segs">${['brandon','laura','pareja'].map(k=>{
@@ -613,15 +620,38 @@ async function sendTransfer(){
 }
 
 /* categorías */
-function openCat(){ document.getElementById('catModalWho').textContent=accountName(active); catKind='gasto'; newIcon='🛒'; document.querySelectorAll('.cat-tabs button').forEach(b=>b.classList.toggle('on',b.dataset.kind==='gasto')); renderIconGrid(); renderCatList(); updateBudgetVisibility(); document.getElementById('catModal').classList.add('show'); }
+function openCat(){ document.getElementById('catModalWho').textContent=accountName(active); catKind='gasto'; document.querySelectorAll('.cat-tabs button').forEach(b=>b.classList.toggle('on',b.dataset.kind==='gasto')); resetCatForm(); renderCatList(); updateBudgetVisibility(); document.getElementById('catModal').classList.add('show'); }
 function closeCat(){ document.getElementById('catModal').classList.remove('show'); }
-function setCatKind(k){ catKind=k; document.querySelectorAll('.cat-tabs button').forEach(b=>b.classList.toggle('on',b.dataset.kind===k)); updateBudgetVisibility(); renderCatList(); }
+function setCatKind(k){ resetCatForm(); catKind=k; document.querySelectorAll('.cat-tabs button').forEach(b=>b.classList.toggle('on',b.dataset.kind===k)); updateBudgetVisibility(); renderCatList(); }
 function updateBudgetVisibility(){ document.getElementById('budgetWrap').style.display=catKind==='gasto'?'grid':'none'; }
 function renderIconGrid(){ document.getElementById('iconGrid').innerHTML=ICONS.map((ic,i)=>`<button type="button" class="icon-opt ${ic===newIcon?'on':''}" onclick="pickIcon(${i})">${ic}</button>`).join(''); }
 function pickIcon(i){ newIcon=ICONS[i]; renderIconGrid(); }
-function renderCatList(){ const cats=acc().categories.filter(c=>c.kind===catKind); document.getElementById('catList').innerHTML=cats.map(c=>`<div class="cat-item"><div class="cic" style="background:${c.color}22;color:${c.color}">${c.emoji}</div><div class="cn">${c.name}${c.kind==='gasto'&&c.budget>0?` · <span style="color:var(--muted);font-weight:600;font-size:12px">${money(c.budget)}/mes</span>`:''}</div><button class="iconbtn" onclick="delCategory('${c.id}')" aria-label="Eliminar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m2 0v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/></svg></button></div>`).join('')||'<div class="empty" style="padding:20px"><p>No hay categorías de este tipo.</p></div>'; }
-async function addCategory(){ const name=document.getElementById('newCatName').value.trim(); const budget=catKind==='gasto'?parseAmount(document.getElementById('newBudget').value):0; if(!name){alert('Escribe un nombre para la categoría.');return;} const color=PALETTE[acc().categories.length%PALETTE.length]; acc().categories.push({id:uid(),emoji:newIcon,name,kind:catKind,color,budget}); document.getElementById('newCatName').value=''; const nb=document.getElementById('newBudget'); if(nb)nb.value=''; await save(); renderCatList(); render(); document.getElementById('catModal').classList.add('show'); }
-async function delCategory(id){ const inUse=acc().transactions.some(t=>t.categoryId===id); const msg=inUse?'Esta categoría tiene movimientos. Se eliminará la categoría pero los movimientos quedarán como "Sin categoría". ¿Continuar?':'¿Eliminar esta categoría?'; if(!confirm(msg))return; acc().categories=acc().categories.filter(c=>c.id!==id); await save(); renderCatList(); render(); document.getElementById('catModal').classList.add('show'); }
+function renderCatList(){ const cats=acc().categories.filter(c=>c.kind===catKind); document.getElementById('catList').innerHTML=cats.map(c=>`<div class="cat-item ${c.id===editingCatId?'editing':''}" onclick="startEditCat('${c.id}')"><div class="cic" style="background:${c.color}22;color:${c.color}">${c.emoji}</div><div class="cn">${c.name}${c.kind==='gasto'&&c.budget>0?` · <span style="color:var(--muted);font-weight:600;font-size:12px">${money(c.budget)}/mes</span>`:''}</div><button class="iconbtn" onclick="event.stopPropagation();startEditCat('${c.id}')" aria-label="Editar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg></button><button class="iconbtn" onclick="event.stopPropagation();delCategory('${c.id}')" aria-label="Eliminar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m2 0v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/></svg></button></div>`).join('')||'<div class="empty" style="padding:20px"><p>No hay categorías de este tipo.</p></div>'; }
+function resetCatForm(){ editingCatId=null; newIcon='🛒'; const n=document.getElementById('newCatName'); if(n)n.value=''; const b=document.getElementById('newBudget'); if(b)b.value=''; const btn=document.getElementById('catSubmitBtn'); if(btn)btn.textContent='Añadir'; const bn=document.getElementById('catEditBanner'); if(bn)bn.style.display='none'; renderIconGrid(); }
+function startEditCat(id){
+  const c=acc().categories.find(x=>x.id===id); if(!c)return;
+  editingCatId=id; catKind=c.kind; newIcon=c.emoji;
+  document.querySelectorAll('.cat-tabs button').forEach(b=>b.classList.toggle('on',b.dataset.kind===c.kind));
+  updateBudgetVisibility();
+  const n=document.getElementById('newCatName'); if(n)n.value=c.name;
+  const b=document.getElementById('newBudget'); if(b)b.value=c.budget?groupThousands(c.budget):'';
+  const btn=document.getElementById('catSubmitBtn'); if(btn)btn.textContent='Guardar';
+  const bn=document.getElementById('catEditBanner'); if(bn)bn.style.display='flex';
+  const bt=document.getElementById('catEditText'); if(bt)bt.textContent='Editando: '+c.emoji+' '+c.name;
+  renderIconGrid(); renderCatList();
+  const body=document.querySelector('#catModal .modal-body'); if(body)body.scrollTop=0;
+}
+function cancelEditCat(){ resetCatForm(); renderCatList(); }
+async function submitCategory(){
+  const name=document.getElementById('newCatName').value.trim();
+  const budget=catKind==='gasto'?parseAmount(document.getElementById('newBudget').value):0;
+  if(!name){ alert('Escribe un nombre para la categoría.'); return; }
+  if(editingCatId){ const c=acc().categories.find(x=>x.id===editingCatId); if(c){ c.emoji=newIcon; c.name=name; c.budget=budget; } }
+  else { const color=PALETTE[acc().categories.length%PALETTE.length]; acc().categories.push({id:uid(),emoji:newIcon,name,kind:catKind,color,budget}); }
+  resetCatForm(); await save(); renderCatList(); render();
+  document.getElementById('catModal').classList.add('show');
+}
+async function delCategory(id){ const inUse=acc().transactions.some(t=>t.categoryId===id); const msg=inUse?'Esta categoría tiene movimientos. Se eliminará la categoría pero los movimientos quedarán como "Sin categoría". ¿Continuar?':'¿Eliminar esta categoría?'; if(!confirm(msg))return; acc().categories=acc().categories.filter(c=>c.id!==id); if(editingCatId===id)resetCatForm(); await save(); renderCatList(); render(); document.getElementById('catModal').classList.add('show'); }
 
 /* exportar */
 function exportData(){
