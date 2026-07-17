@@ -38,9 +38,10 @@
   .title h1{font-size:26px;font-weight:800}
   .title p{color:var(--muted);font-size:14px;margin-top:2px}
   .toolbtns{display:flex;gap:8px}
-  .toolbtn{display:inline-flex;align-items:center;gap:7px;font-size:13.5px;font-weight:600;padding:9px 13px;border-radius:11px;background:var(--card);border:1px solid var(--line);box-shadow:var(--shadow);transition:.15s}
+  .toolbtn{display:inline-flex;align-items:center;justify-content:center;width:40px;height:40px;padding:0;border-radius:11px;background:var(--card);border:1px solid var(--line);box-shadow:var(--shadow);transition:.15s;color:var(--muted)}
   .toolbtn:hover{border-color:var(--accent);color:var(--accent)}
-  .toolbtn svg{width:15px;height:15px}
+  .toolbtn svg{width:18px;height:18px}
+  .profile-btn{color:var(--accent);border-color:var(--accent)}
 
   .switcher{position:sticky;top:0;z-index:30;background:var(--paper);padding:14px 0 12px;margin-top:8px}
   .segs{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:6px;box-shadow:var(--shadow)}
@@ -472,9 +473,9 @@ function render(){
       <div class="title"><h1>Cuentas en pareja</h1><p>Ingresos, gastos y patrimonio de ${accountName(active)}</p></div>
       <div class="toolbtns">
         <span id="syncStatus" class="syncpill ${syncState}">${syncText(syncState)}</span>
-        <button class="toolbtn" onclick="openProfiles()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2M12 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8z"/></svg>Perfiles</button>
-        <button class="toolbtn" onclick="openSettings()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>Configuración</button>
-        <button class="toolbtn" onclick="openCat()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 7h.01M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/></svg>Categorías</button>
+        <button class="toolbtn" onclick="openCat()" title="Categorías" aria-label="Categorías"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 7h.01M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/></svg></button>
+        <button class="toolbtn" onclick="openSettings()" title="Configuración" aria-label="Configuración"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></button>
+        <button class="toolbtn profile-btn" onclick="openProfiles()" title="Perfiles" aria-label="Perfiles"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2M12 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8z"/></svg></button>
       </div></div></div></header>
 
     <div class="switcher"><div class="wrap"><div class="segs">${['brandon','laura','pareja'].map(k=>{
