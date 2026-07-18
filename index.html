@@ -431,8 +431,9 @@
   }
 
   /* ===== Cartera estilo Apple Wallet ===== */
-  .wallet{position:relative;margin-top:8px}
-  .wcard{position:relative;border-radius:24px;color:#fff;overflow:hidden;box-shadow:0 20px 44px -22px rgba(0,0,0,.75)}
+  .wallet{position:relative;width:100%;margin-top:8px}
+  .grid,#insightsCol,#txPanel{width:100%}
+  .wcard{position:relative;width:100%;border-radius:var(--r-card);color:#fff;overflow:hidden;box-shadow:var(--shadow-1)}
   .peek{height:70px;margin-bottom:-22px;cursor:pointer;filter:brightness(.82);transition:transform .32s var(--spring),filter .25s,margin-bottom .32s var(--spring)}
   .peek:first-child{z-index:1}
   .peek:nth-child(2){z-index:2}
@@ -444,7 +445,7 @@
   .peek-av.av-pareja{font-size:15px}
   .peek-name{font-weight:640;font-size:15px;flex:1;letter-spacing:-.015em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .peek-bal{font-weight:600;font-size:14px;opacity:.92}
-  .front{position:relative;z-index:5;padding:22px 24px 20px;animation:wfront .5s var(--spring)}
+  .front{position:relative;z-index:5;padding:22px 24px 20px;box-shadow:var(--shadow-2);animation:wfront .5s var(--spring)}
   @keyframes wfront{from{transform:translateY(12px) scale(.985);opacity:.35}to{transform:none;opacity:1}}
   .front::before{content:"";position:absolute;inset:0;background:radial-gradient(120% 80% at 85% -10%,rgba(255,255,255,.34),transparent 60%),radial-gradient(80% 60% at 0% 120%,rgba(0,0,0,.2),transparent 55%);pointer-events:none}
   .front::after{content:"";position:absolute;top:0;left:-60%;width:45%;height:100%;background:linear-gradient(105deg,transparent,rgba(255,255,255,.3),transparent);transform:skewX(-18deg);animation:sheen 7s var(--ease) infinite;pointer-events:none}
@@ -1795,6 +1796,9 @@ function toastAction(msg,label,fn){ const t=document.createElement('div'); t.cla
 /* Bloqueo total de zoom (pellizco y doble toque), app estática */
 ['gesturestart','gesturechange','gestureend'].forEach(function(ev){ document.addEventListener(ev,function(e){ e.preventDefault(); },{passive:false}); });
 document.addEventListener('dblclick',function(e){ e.preventDefault(); },{passive:false});
+document.addEventListener('touchmove',function(e){ if(e.touches&&e.touches.length>1) e.preventDefault(); },{passive:false});
+document.addEventListener('wheel',function(e){ if(e.ctrlKey) e.preventDefault(); },{passive:false});
+document.addEventListener('keydown',function(e){ if((e.ctrlKey||e.metaKey)&&['+','-','=','0','_'].indexOf(e.key)>=0) e.preventDefault(); },{passive:false});
 init();
 </script>
 </body>
