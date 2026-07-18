@@ -191,7 +191,7 @@
   .attachbtn.has{background:var(--accent-soft);color:var(--accent)}
 
   /* ===== Paneles / secciones ===== */
-  .grid{display:grid;grid-template-columns:1fr;gap:16px;margin-top:18px;align-items:start}
+  .grid{display:grid;grid-template-columns:minmax(0,1fr);gap:16px;margin-top:18px;align-items:start}
   .panel{padding:18px}
   .panel h3.sec{font-size:17px;font-weight:680;margin-bottom:14px;display:flex;align-items:center;gap:9px;flex-wrap:wrap;letter-spacing:-.02em}
   .panel h3.sec .count{font-size:12px;font-weight:600;color:var(--label-2);background:var(--fill);padding:2px 10px;border-radius:20px}
@@ -365,7 +365,7 @@
     .wrap{padding:0 16px}
     header.top{padding:24px 0 6px}
     .title h1{font-size:28px}
-    .grid{grid-template-columns:1fr}
+    .grid{grid-template-columns:minmax(0,1fr)}
     .frow{grid-template-columns:1fr 1fr}
     .frow .field.desc{grid-column:1/-1}
     .summary{gap:9px}
@@ -432,7 +432,8 @@
 
   /* ===== Cartera estilo Apple Wallet ===== */
   .wallet{position:relative;width:100%;margin-top:8px}
-  .grid,#insightsCol,#txPanel{width:100%}
+  .grid,#insightsCol,#txPanel{width:100%;min-width:0}
+  .grid>*{min-width:0}
   .wcard{position:relative;width:100%;border-radius:var(--r-card);color:#fff;overflow:hidden;box-shadow:var(--shadow-1)}
   .peek{height:70px;margin-bottom:-22px;cursor:pointer;filter:brightness(.82);transition:transform .32s var(--spring),filter .25s,margin-bottom .32s var(--spring)}
   .peek:first-child{z-index:1}
