@@ -1210,7 +1210,7 @@ function cardShell(title,inner,addBtn){ return `<div class="card panel insight">
 const CARD_HELP={
  goal:'Aparta dinero del fondo de Pareja para viajes o proyectos. Ponle una fecha objetivo y te decimos cuánto guardar cada mes para llegar a tiempo. Toca Abonar o Retirar para mover el ahorro.',
  couple:'Suma los gastos compartidos que pagó cada uno de su bolsillo en Pareja y muestra el saldo neto: quién le debe a quién. Con "Emparejar cuentas" se registra el pago que los deja a paz y salvo.',
- loan:'Préstamos entre ustedes: el dinero se mueve de verdad (baja el patrimonio de quien presta y sube el del que recibe) y queda la deuda registrada. Cada abono baja el saldo pendiente y aparece en la lista de movimientos.',
+ loan:'Todas las deudas entre ustedes en un solo lugar. Arriba (en Pareja): el saldo de los gastos compartidos, con \'Emparejar cuentas\' para quedar a paz y salvo. Abajo: los préstamos, donde el dinero se mueve de verdad y cada abono lo registra quien prestó.',
  heart:'Cuánto ha aportado cada uno al fondo común en el periodo elegido, con su porcentaje. Los aportes se registran con el botón "Enviar a Pareja".',
  chart:'Reparto de tus gastos por categoría en el periodo. La barra más larga es donde más se va el dinero; toca el periodo arriba para cambiar de mes.',
  calendar:'Compara este mes con el anterior en ingresos y gastos, con la variación en %, y te señala tu mayor gasto del mes.',
@@ -1282,8 +1282,18 @@ function loansCard(){
       <div class="track"><div class="fill" style="width:${pc}%;background:${done?'var(--good)':'var(--transfer)'}"></div></div>
       <div style="display:flex;gap:6px;margin-top:6px;align-items:center;flex-wrap:wrap">${loanActions(l,scope,pend,done)}</div></div>`;
   }).join('');
-  const empty=`<div class="empty" style="padding:16px 10px"><p>Cuando uno le preste dinero al otro, regístralo aquí: el dinero se mueve y la app lleva el saldo.</p></div>`;
-  return cardShellF('loan',secTitle('loan','Préstamos entre ustedes'), list.length?rows:empty, PERSONS.includes(active)?addLink('openLoanModal()'):'');
+  let head='';
+  if(scope==='pareja'){
+    const d=coupleDebtCalc(data.accounts.pareja.transactions,data.settlements);
+    head = d.amount>0
+      ? `<div class="debtbox"><div class="dwho">${accountName(d.debtor)} le debe a ${accountName(d.creditor)}</div><div class="damt num">${money(d.amount)}</div><button class="mini-btn accent" onclick="settleUp()">Emparejar cuentas</button></div><div class="budget-tag" style="margin-top:8px">Saldo de los gastos compartidos pagados del bolsillo de cada uno.</div>`
+      : `<div class="okline">✓ A paz y salvo en gastos compartidos</div>`;
+    if(list.length) head += `<div class="budget-tag" style="margin:14px 0 8px;font-weight:700;opacity:1">Préstamos</div>`;
+  }
+  const empty = scope==='pareja'
+    ? `<div class="budget-tag" style="text-align:center;padding:10px 0">No hay préstamos registrados. Entra al perfil de Brandon o Laura para prestar.</div>`
+    : `<div class="empty" style="padding:16px 10px"><p>Cuando uno le preste dinero al otro, regístralo aquí: el dinero se mueve y la app lleva el saldo.</p></div>`;
+  return cardShellF('loan',secTitle('loan','Deudas entre ustedes'), head+(list.length?rows:empty), PERSONS.includes(active)?addLink('openLoanModal()'):'');
 }
 function aportesCard(){
   if(active!=='pareja')return'';
@@ -1395,7 +1405,7 @@ function tagsCard(){
   return cardShellF('tag',secTitle('tag','Etiquetas'),`<div class="chips">${chips}</div><div class="budget-tag" style="margin-top:8px">Escribe #etiquetas en la descripción para agrupar gastos de un evento.</div>`);
 }
 function insightsHTML(){
-  return [goalsCardFull(),debtBetweenCard(),loansCard(),aportesCard(),catSpendCard(),compareCard(),chartCard(active),budgetsCard(),recurrentsCard(),remindersCard(),debtsCard(),tagsCard()].filter(Boolean).join('');
+  return [goalsCardFull(),loansCard(),aportesCard(),catSpendCard(),compareCard(),chartCard(active),budgetsCard(),recurrentsCard(),remindersCard(),debtsCard(),tagsCard()].filter(Boolean).join('');
 }
 
 
