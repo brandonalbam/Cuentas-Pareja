@@ -526,6 +526,8 @@
   .icon-opt svg{width:25px;height:25px;stroke-width:1.6;color:var(--label-2)}
   .icon-opt.on svg{color:var(--accent)}
   .flipcard .catgi{color:#fff}
+  .loan-dir{background:var(--fill-2);border-radius:12px;padding:12px 14px;font-size:14px;margin-bottom:12px;color:var(--label);line-height:1.45}
+  .loan-dir b{color:var(--accent)}
 </style>
 
 </head>
@@ -581,10 +583,9 @@
   <div class="modal-bg" id="loanModal"><div class="modal">
     <div class="modal-head"><h3>Préstamo entre ustedes</h3><button class="closebtn" onclick="closeM('loanModal')">✕</button></div>
     <div class="modal-body">
-      <p class="modal-note">El dinero se mueve de verdad: baja del patrimonio de quien presta y sube al de quien recibe. Queda registrada la deuda y cada abono la va saldando. Todo aparece en la lista de movimientos.</p>
+      <p class="modal-note">Prestas directamente a tu pareja desde tu perfil: el dinero baja de tu cuenta y sube a la suya, y queda la deuda registrada. Solo tú, que prestaste, podrás registrar los abonos.</p>
+      <div id="loanDir" class="loan-dir"></div>
       <div class="m-grid2">
-        <div class="field"><label>Quién presta</label><select id="loan_lender" onchange="onLoanLenderChange()"></select></div>
-        <div class="field"><label>Quién recibe</label><select id="loan_borrower"></select></div>
         <div class="field"><label>Monto</label><div class="amountwrap"><span>$</span><input id="loan_amount" class="num money-in" inputmode="numeric" placeholder="0" style="padding-left:26px"></div></div>
         <div class="field"><label>Fecha</label><input id="loan_date" type="date"></div>
         <div class="field full"><label>Nota (opcional)</label><input id="loan_note" placeholder="Ej: Para la matrícula"></div>
@@ -1260,6 +1261,13 @@ function debtBetweenCard(){
     : `<div class="okline">✓ Están a paz y salvo</div><div class="budget-tag" style="text-align:center">Registra un gasto en Pareja con "¿Quién pagó?" para dividirlo entre los dos.</div>`;
   return cardShellF('couple',secTitle('couple','Cuentas entre ustedes'),inner);
 }
+function loanActions(l,scope,pend,done){
+  if(done) return '<span class="budget-tag" style="color:var(--good);font-weight:640">✓ Saldado</span>';
+  const note=l.note?' · '+escapeHtml(l.note):'';
+  if(scope!=='pareja'&&l.lender===scope) return `<span class="budget-tag">Pendiente ${money(pend)}${note}</span><button class="mini-btn xs accent" onclick="loanPay('${l.id}')">Abonar</button><button class="mini-btn xs danger" onclick="loanDel('${l.id}')" style="margin-left:auto">Eliminar</button>`;
+  if(scope!=='pareja'&&l.borrower===scope) return `<span class="budget-tag">Te falta por abonar ${money(pend)}${note}</span><span class="budget-tag" style="margin-left:auto;opacity:.85">🔒 Solo ${accountName(l.lender)} abona</span>`;
+  return `<span class="budget-tag">Pendiente ${money(pend)}${note} · lo gestiona ${accountName(l.lender)}</span>`;
+}
 function loansCard(){
   if(!PERSONS.includes(active)&&active!=='pareja')return'';
   const scope=active;
@@ -1272,10 +1280,10 @@ function loansCard(){
     else who=`${accountName(l.lender)} te prestó`;
     return `<div class="bar-row"><div class="bl"><span class="nm">💸 ${who}</span><span class="vl num">${money(l.paid)}<span class="pc">/ ${money(l.amount)} · ${pc}%</span></span></div>
       <div class="track"><div class="fill" style="width:${pc}%;background:${done?'var(--good)':'var(--transfer)'}"></div></div>
-      <div style="display:flex;gap:6px;margin-top:6px;align-items:center">${done?'<span class="budget-tag" style="color:var(--good);font-weight:640">✓ Saldado</span>':`<span class="budget-tag">Pendiente ${money(pend)}${l.note?' · '+escapeHtml(l.note):''}</span><button class="mini-btn xs accent" onclick="loanPay('${l.id}')">Abonar</button>`}<button class="mini-btn xs danger" onclick="loanDel('${l.id}')" style="margin-left:auto">Eliminar</button></div></div>`;
+      <div style="display:flex;gap:6px;margin-top:6px;align-items:center;flex-wrap:wrap">${loanActions(l,scope,pend,done)}</div></div>`;
   }).join('');
   const empty=`<div class="empty" style="padding:16px 10px"><p>Cuando uno le preste dinero al otro, regístralo aquí: el dinero se mueve y la app lleva el saldo.</p></div>`;
-  return cardShellF('loan',secTitle('loan','Préstamos entre ustedes'), list.length?rows:empty, addLink('openLoanModal()'));
+  return cardShellF('loan',secTitle('loan','Préstamos entre ustedes'), list.length?rows:empty, PERSONS.includes(active)?addLink('openLoanModal()'):'');
 }
 function aportesCard(){
   if(active!=='pareja')return'';
@@ -1509,26 +1517,26 @@ async function settleUp(){
 /* ---------- préstamos entre las personas ---------- */
 function onLoanLenderChange(){ const l=document.getElementById('loan_lender').value; const b=l==='brandon'?'laura':'brandon'; const bs=document.getElementById('loan_borrower'); bs.value=b; }
 function openLoanModal(){
-  const def=PERSONS.includes(active)?active:'brandon';
-  const other=def==='brandon'?'laura':'brandon';
-  document.getElementById('loan_lender').innerHTML=PERSONS.map(k=>`<option value="${k}" ${k===def?'selected':''}>${accountName(k)}</option>`).join('');
-  document.getElementById('loan_borrower').innerHTML=PERSONS.map(k=>`<option value="${k}" ${k===other?'selected':''}>${accountName(k)}</option>`).join('');
+  if(!PERSONS.includes(active)){ toast('Entra al perfil de Brandon o Laura para prestar'); return; }
+  const other=active==='brandon'?'laura':'brandon';
+  document.getElementById('loanDir').innerHTML=`Le prestas a <b>${accountName(other)}</b> · sale de tu cuenta y entra a la de ${accountName(other)}`;
   document.getElementById('loan_amount').value=''; document.getElementById('loan_note').value=''; document.getElementById('loan_date').value=todayISO();
   openM('loanModal'); setTimeout(()=>document.getElementById('loan_amount').focus(),60);
 }
 async function saveLoan(){
-  const lender=document.getElementById('loan_lender').value, borrower=document.getElementById('loan_borrower').value;
+  if(!PERSONS.includes(active)){ toast('Entra al perfil de quien presta'); return; }
+  const lender=active, borrower=active==='brandon'?'laura':'brandon';
   const amount=parseAmountStr(document.getElementById('loan_amount').value);
   const date=document.getElementById('loan_date').value||todayISO();
   const note=document.getElementById('loan_note').value.trim();
-  if(lender===borrower){ alert('El préstamo es entre dos personas distintas.'); return; }
   if(!amount){ alert('Escribe un monto mayor a 0.'); return; }
   const tid=createTransfer(lender,borrower,amount,date,(note?note+' ':'')+'(préstamo 💸)',false);
   data.loans.push({id:uid(),lender,borrower,amount,paid:0,date,note,transferId:tid});
-  await save(); closeM('loanModal'); render(); toast('💸 Préstamo registrado: '+accountName(lender)+' → '+accountName(borrower));
+  await save(); closeM('loanModal'); render(); toast('💸 Le prestaste '+money(amount)+' a '+accountName(borrower));
 }
 async function loanPay(id){
   const l=data.loans.find(x=>x.id===id); if(!l)return;
+  if(active!==l.lender){ toast('Solo '+accountName(l.lender)+' puede registrar abonos'); return; }
   const pend=Math.max(0,l.amount-l.paid);
   const amt=parseAmountStr(prompt('¿Cuánto abona '+accountName(l.borrower)+' a '+accountName(l.lender)+'? (pendiente: '+money(pend)+')',groupThousands(pend))||'');
   if(!amt)return;
@@ -1538,7 +1546,7 @@ async function loanPay(id){
   await save(); render();
   toast(l.paid>=l.amount?('🎉 Préstamo saldado por completo'):('Abono de '+money(pay)+' registrado'));
 }
-async function loanDel(id){ if(!confirm('¿Eliminar este préstamo? Los movimientos de dinero ya registrados se conservan.'))return; data.loans=data.loans.filter(l=>l.id!==id); await save(); render(); }
+async function loanDel(id){ const l=data.loans.find(x=>x.id===id); if(!l)return; if(active!==l.lender){ toast('Solo '+accountName(l.lender)+' puede eliminar este préstamo'); return; } if(!confirm('¿Eliminar este préstamo? Los movimientos de dinero ya registrados se conservan.'))return; data.loans=data.loans.filter(x=>x.id!==id); await save(); render(); }
 
 /* ---------- patrimonio ---------- */
 function openPat(){ document.getElementById('patWho').textContent=accountName(active); document.getElementById('pat_amount').value=acc().patrimonioBase?groupThousands(acc().patrimonioBase):''; openM('patModal'); setTimeout(()=>document.getElementById('pat_amount').focus(),60); }
