@@ -422,7 +422,7 @@
       <div class="field" style="margin-bottom:10px"><label>Clave pública (anon key)</label><input id="cfg_key" type="password" placeholder="eyJhbGciOiJIUzI1..."></div>
       <div class="field" style="margin-bottom:12px"><label>ID de sincronización (compártelo entre los dos)</label><input id="cfg_sync" placeholder="ej: hogar-8f3k2"></div>
       <div class="switch-row">
-        <div><div class="switch-title">Sincronización automática en la nube</div><div class="switch-sub">Sube y baja los cambios solo, cada 15 segundos (gana la versión más reciente)</div></div>
+        <div><div class="switch-title">Sincronización automática en la nube</div><div class="switch-sub">Sube y baja los cambios solo, cada 5 segundos (gana la versión más reciente)</div></div>
         <button class="switch" id="cfg_auto" onclick="this.classList.toggle('on')" role="switch"><span class="knob"></span></button>
       </div>
       <div class="cfg-status" id="setMsg"></div>
@@ -1323,7 +1323,7 @@ async function syncCycle(force){
   }catch(e){ setSyncStatus('error'); }
   syncBusy=false;
 }
-setInterval(syncCycle,15000);
+setInterval(syncCycle,5000);
 document.addEventListener('visibilitychange',()=>{ if(!document.hidden)syncCycle(true); });
 function syncText(s){ if(s==='pending')return'● Cambios sin subir'; if(s==='syncing')return'⟳ Sincronizando…'; if(s==='ok')return'☁ Sincronizado'; if(s==='error')return'⚠ Error de sync'; return (cfg.autoSync&&sbReady())?'☁ Nube lista':''; }
 function setSyncStatus(s){ syncState=s; if(s==='ok')lastSync=Date.now(); const el=document.getElementById('syncStatus'); if(el){ el.className='syncpill '+s; el.textContent=syncText(s); } const ln=document.getElementById('lastSyncNote'); if(ln&&lastSync)ln.textContent='Última sincronización: '+new Date(lastSync).toLocaleString('es-CO'); }
