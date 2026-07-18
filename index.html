@@ -162,7 +162,7 @@
   .typetoggle button.on[data-t="gasto"]{color:var(--red)}
   .typetoggle button.on[data-t="ingreso"]{color:var(--green)}
   .typetoggle button:active{transform:scale(.94)}
-  .frow{display:grid;grid-template-columns:1.1fr 1.4fr 1fr;gap:12px}
+  .frow{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1.4fr) minmax(0,1fr);gap:12px}
   .field{display:flex;flex-direction:column;gap:6px}
   .field label{font-size:12.5px;font-weight:590;color:var(--label-2)}
   .field input,.field select{padding:12px 13px;border-radius:12px;border:none;background:var(--fill-2);width:100%;font-size:16px;transition:box-shadow .2s,background .2s}
@@ -198,8 +198,8 @@
   .panel h3.sec .addlink{margin-left:auto;font-size:13px;font-weight:640;color:var(--accent);background:var(--accent-soft);padding:6px 13px;border-radius:20px;transition:transform .25s var(--spring)}
   .panel h3.sec .addlink:hover{transform:scale(1.05)}
   .panel h3.sec .addlink:active{transform:scale(.95)}
-  .filters{display:grid;grid-template-columns:1fr auto auto;gap:9px;margin-bottom:14px}
-  .filters input,.filters select{padding:10px 12px;border-radius:11px;border:none;background:var(--fill-2);font-size:14px;max-width:180px;-webkit-appearance:none;appearance:none}
+  .filters{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,auto) minmax(0,auto);gap:9px;margin-bottom:14px}
+  .filters input,.filters select{padding:10px 12px;border-radius:11px;border:none;background:var(--fill-2);font-size:14px;max-width:180px;min-width:0;text-overflow:ellipsis;-webkit-appearance:none;appearance:none}
   .filters input{max-width:none}
   .filters select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='11' height='11' viewBox='0 0 24 24' fill='none' stroke='%236C6C70' stroke-width='3'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 11px center;padding-right:30px}
 
@@ -292,7 +292,7 @@
   .closebtn{width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;color:var(--label-2);background:var(--fill);font-size:15px;transition:background .15s,transform .2s var(--spring)}
   .closebtn:hover{background:var(--fill-3)}
   .closebtn:active{transform:scale(.9)}
-  .m-grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  .m-grid2{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:12px}
   .m-grid2 .full{grid-column:1/-1}
 
   /* ===== Categorías ===== */
@@ -371,7 +371,7 @@
     .summary{gap:9px}
     .sumcard{padding:14px 13px}
     .sumcard .val{font-size:21px}
-    .filters{grid-template-columns:1fr 1fr}
+    .filters{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
     .filters input{grid-column:1/-1}
     .filters select{max-width:none}
     .seg .bal{display:none}
@@ -475,6 +475,8 @@
   .flipcard .sec-ic,.insight[style] .sec-ic{background:color-mix(in srgb,var(--cardc,var(--accent)) 16%,transparent);color:var(--cardc,var(--accent))}
   .flipcard .track .fill,.flipcard .fill{}
   .flipcard::after{content:"";position:absolute;left:16px;right:16px;top:0;height:3px;border-radius:0 0 4px 4px;background:var(--cardc,var(--accent));opacity:.9}
+  select{max-width:100%}
+  .field>*{min-width:0}
 </style>
 
 </head>
