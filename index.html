@@ -55,7 +55,7 @@
   input,select,textarea{font-family:inherit;font-size:16px;color:var(--label)}
   input:focus-visible,select:focus-visible,button:focus-visible{outline:3px solid color-mix(in srgb,var(--accent) 55%,transparent);outline-offset:2px;border-radius:10px}
   ::selection{background:color-mix(in srgb,var(--accent) 24%,transparent)}
-  .wrap{max-width:500px;margin:0 auto;padding:0 20px}
+  .wrap{max-width:600px;margin:0 auto;padding:0 20px}
   #app{animation:appin .5s var(--ease)}
   @keyframes appin{from{opacity:0}to{opacity:1}}
 
@@ -440,12 +440,12 @@
   .peek:hover{filter:brightness(.95);transform:translateY(-2px)}
   .peek:active{transform:scale(.985)}
   .peek::before{content:"";position:absolute;inset:0;background:radial-gradient(120% 120% at 90% -20%,rgba(255,255,255,.28),transparent 55%);pointer-events:none}
-  .peekrow{position:relative;z-index:1;display:flex;align-items:center;gap:12px;padding:13px 20px 0}
+  .peekrow{position:relative;z-index:1;display:flex;align-items:center;gap:12px;padding:13px 18px 0}
   .peek-av{width:30px;height:30px;border-radius:50%;object-fit:cover;background:rgba(255,255,255,.22);font-size:15px;display:flex;align-items:center;justify-content:center;border:1px solid rgba(255,255,255,.45);flex:none}
   .peek-av.av-pareja{font-size:15px}
   .peek-name{font-weight:640;font-size:15px;flex:1;letter-spacing:-.015em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .peek-bal{font-weight:600;font-size:14px;opacity:.92}
-  .front{position:relative;z-index:5;padding:22px 24px 20px;box-shadow:var(--shadow-2);animation:wfront .5s var(--spring)}
+  .front{position:relative;z-index:5;padding:20px 18px;box-shadow:var(--shadow-1);animation:wfront .5s var(--spring)}
   @keyframes wfront{from{transform:translateY(12px) scale(.985);opacity:.35}to{transform:none;opacity:1}}
   .front::before{content:"";position:absolute;inset:0;background:radial-gradient(120% 80% at 85% -10%,rgba(255,255,255,.34),transparent 60%),radial-gradient(80% 60% at 0% 120%,rgba(0,0,0,.2),transparent 55%);pointer-events:none}
   .front::after{content:"";position:absolute;top:0;left:-60%;width:45%;height:100%;background:linear-gradient(105deg,transparent,rgba(255,255,255,.3),transparent);transform:skewX(-18deg);animation:sheen 7s var(--ease) infinite;pointer-events:none}
