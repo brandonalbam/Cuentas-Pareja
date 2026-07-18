@@ -422,7 +422,7 @@
       <div class="field" style="margin-bottom:10px"><label>Clave pública (anon key)</label><input id="cfg_key" type="password" placeholder="eyJhbGciOiJIUzI1..."></div>
       <div class="field" style="margin-bottom:12px"><label>ID de sincronización (compártelo entre los dos)</label><input id="cfg_sync" placeholder="ej: hogar-8f3k2"></div>
       <div class="switch-row">
-        <div><div class="switch-title">Guardado automático en la nube</div><div class="switch-sub">Sube los cambios solo, después de cada movimiento</div></div>
+        <div><div class="switch-title">Sincronización automática en la nube</div><div class="switch-sub">Sube y baja los cambios solo, cada 15 segundos (gana la versión más reciente)</div></div>
         <button class="switch" id="cfg_auto" onclick="this.classList.toggle('on')" role="switch"><span class="knob"></span></button>
       </div>
       <div class="cfg-status" id="setMsg"></div>
@@ -456,6 +456,7 @@
 /* ================== ALMACENAMIENTO ================== */
 const STORE_KEY='cuentas_pareja_v1';
 const CFG_KEY='cuentas_pareja_cfg';
+const STAMP_KEY='cuentas_pareja_stamp';
 const _mem={};
 async function storageGet(k){ if(window.storage&&window.storage.get){ try{const r=await window.storage.get(k,false); if(r)return r.value;}catch(e){} } try{ const v=localStorage.getItem(k); if(v!==null)return v; }catch(e){} return (k in _mem)?_mem[k]:null; }
 async function storageSet(k,v){ if(window.storage&&window.storage.set){ try{await window.storage.set(k,v,false);return;}catch(e){} } try{ localStorage.setItem(k,v); return; }catch(e){} _mem[k]=v; }
@@ -571,7 +572,7 @@ function ensureShape(){
   if(!data.accounts.pareja.icon)data.accounts.pareja.icon='💞';
   ['recurrents','reminders','goals','debts','settlements'].forEach(k=>{ if(!Array.isArray(data[k]))data[k]=[]; });
 }
-async function save(){ await storageSet(STORE_KEY,JSON.stringify(data)); scheduleCloudPush(); }
+async function save(){ dataStamp=new Date().toISOString(); try{localStorage.setItem(STAMP_KEY,dataStamp);}catch(e){} await storageSet(STORE_KEY,JSON.stringify(data)); scheduleCloudPush(); }
 function loadCfg(){ try{ const r=localStorage.getItem(CFG_KEY); if(r) cfg=Object.assign(cfg,JSON.parse(r)); }catch(e){} }
 function saveCfg(){ try{ localStorage.setItem(CFG_KEY,JSON.stringify(cfg)); }catch(e){} }
 
@@ -1285,9 +1286,45 @@ create policy "acceso con anon key"
 const sbBase=()=>cfg.url.replace(/\/+$/,'');
 function sbHeaders(){ return {'apikey':cfg.key,'Authorization':'Bearer '+cfg.key,'Content-Type':'application/json'}; }
 function sbReady(){ return !!(cfg.url&&cfg.key&&cfg.syncId); }
-async function cloudPush(){ if(!sbReady())throw new Error('Falta configurar Supabase.'); const res=await fetch(sbBase()+'/rest/v1/'+cfg.table,{method:'POST',headers:Object.assign(sbHeaders(),{'Prefer':'resolution=merge-duplicates,return=minimal'}),body:JSON.stringify([{id:cfg.syncId,data:data,updated_at:new Date().toISOString()}])}); if(!res.ok)throw new Error(res.status+' '+(await res.text()).slice(0,140)); }
-async function cloudPull(){ if(!sbReady())throw new Error('Falta configurar Supabase.'); const res=await fetch(sbBase()+'/rest/v1/'+cfg.table+'?id=eq.'+encodeURIComponent(cfg.syncId)+'&select=data,updated_at',{headers:sbHeaders()}); if(!res.ok)throw new Error(res.status+' '+(await res.text()).slice(0,140)); const rows=await res.json(); if(!rows.length)throw new Error('No hay datos en la nube con ese ID.'); return rows[0].data; }
-let syncState='idle', pushTimer=null, lastSync=0;
+async function cloudPush(){ if(!sbReady())throw new Error('Falta configurar Supabase.'); const stamp=dataStamp||new Date().toISOString(); const res=await fetch(sbBase()+'/rest/v1/'+cfg.table,{method:'POST',headers:Object.assign(sbHeaders(),{'Prefer':'resolution=merge-duplicates,return=minimal'}),body:JSON.stringify([{id:cfg.syncId,data:data,updated_at:stamp}])}); if(!res.ok)throw new Error(res.status+' '+(await res.text()).slice(0,140)); }
+async function cloudPullRow(){ if(!sbReady())throw new Error('Falta configurar Supabase.'); const res=await fetch(sbBase()+'/rest/v1/'+cfg.table+'?id=eq.'+encodeURIComponent(cfg.syncId)+'&select=data,updated_at',{headers:sbHeaders()}); if(!res.ok)throw new Error(res.status+' '+(await res.text()).slice(0,140)); const rows=await res.json(); return rows.length?rows[0]:null; }
+async function cloudPull(){ const row=await cloudPullRow(); if(!row)throw new Error('No hay datos en la nube con ese ID.'); return row.data; }
+let syncState='idle', pushTimer=null, lastSync=0, dataStamp=null, syncBusy=false;
+try{ dataStamp=localStorage.getItem(STAMP_KEY)||null; }catch(e){}
+/* ¿es seguro reemplazar los datos locales por los de la nube en este momento? */
+function safeToAdopt(){
+  if(form.editingId)return false; /* editando un movimiento */
+  if(document.querySelector('.modal-bg.show'))return false; /* hay un modal abierto */
+  const a=document.activeElement; if(a&&/^(INPUT|SELECT|TEXTAREA)$/.test(a.tagName))return false; /* escribiendo */
+  return true;
+}
+function adoptRemote(remote,stamp){
+  data=remote; ensureShape(); dataStamp=stamp;
+  try{localStorage.setItem(STAMP_KEY,stamp);}catch(e){}
+  storageSet(STORE_KEY,JSON.stringify(data));
+  if(accountLocked(active))active='pareja';
+  render();
+}
+/* ciclo de sincronización en dos direcciones cada 15 s */
+async function syncCycle(force){
+  if(!cfg.autoSync||!sbReady()||syncBusy)return;
+  if(document.hidden&&!force)return; /* si la pestaña no está visible, esperar */
+  syncBusy=true;
+  const prev=syncState; setSyncStatus('syncing');
+  try{
+    const row=await cloudPullRow();
+    if(!row){ if(dataStamp){ await cloudPush(); } setSyncStatus('ok'); }
+    else{
+      const remoteStamp=row.updated_at||'', localStamp=dataStamp||'';
+      if(remoteStamp>localStamp){ if(safeToAdopt()){ adoptRemote(row.data,remoteStamp); setSyncStatus('ok'); } else { setSyncStatus(prev==='ok'?'ok':'idle'); } }
+      else if(localStamp>remoteStamp){ await cloudPush(); setSyncStatus('ok'); }
+      else{ setSyncStatus('ok'); }
+    }
+  }catch(e){ setSyncStatus('error'); }
+  syncBusy=false;
+}
+setInterval(syncCycle,15000);
+document.addEventListener('visibilitychange',()=>{ if(!document.hidden)syncCycle(true); });
 function syncText(s){ if(s==='pending')return'● Cambios sin subir'; if(s==='syncing')return'⟳ Sincronizando…'; if(s==='ok')return'☁ Sincronizado'; if(s==='error')return'⚠ Error de sync'; return (cfg.autoSync&&sbReady())?'☁ Nube lista':''; }
 function setSyncStatus(s){ syncState=s; if(s==='ok')lastSync=Date.now(); const el=document.getElementById('syncStatus'); if(el){ el.className='syncpill '+s; el.textContent=syncText(s); } const ln=document.getElementById('lastSyncNote'); if(ln&&lastSync)ln.textContent='Última sincronización: '+new Date(lastSync).toLocaleString('es-CO'); }
 function scheduleCloudPush(){ if(!cfg.autoSync||!sbReady())return; setSyncStatus('pending'); clearTimeout(pushTimer); pushTimer=setTimeout(async()=>{ setSyncStatus('syncing'); try{ await cloudPush(); setSyncStatus('ok'); }catch(e){ setSyncStatus('error'); } },1500); }
@@ -1302,7 +1339,7 @@ function openSettings(){
   openM('setModal');
 }
 function setSettingsMsg(t,ok){ const el=document.getElementById('setMsg'); if(!el)return; el.textContent=t||''; el.className='cfg-status'+(ok===true?' ok':ok===false?' err':''); }
-function saveSettings(){ cfg.url=document.getElementById('cfg_url').value.trim(); cfg.key=document.getElementById('cfg_key').value.trim(); cfg.syncId=document.getElementById('cfg_sync').value.trim(); cfg.autoSync=document.getElementById('cfg_auto').classList.contains('on'); saveCfg(); setSettingsMsg('Configuración guardada ✓',true); setSyncStatus('idle'); }
+function saveSettings(){ cfg.url=document.getElementById('cfg_url').value.trim(); cfg.key=document.getElementById('cfg_key').value.trim(); cfg.syncId=document.getElementById('cfg_sync').value.trim(); cfg.autoSync=document.getElementById('cfg_auto').classList.contains('on'); saveCfg(); setSettingsMsg('Configuración guardada ✓',true); setSyncStatus('idle'); if(cfg.autoSync&&sbReady())setTimeout(()=>syncCycle(true),300); }
 async function testConn(){
   const url=document.getElementById('cfg_url').value.trim(), key=document.getElementById('cfg_key').value.trim();
   if(!url||!key){ setSettingsMsg('Escribe la URL y la clave anon.',false); return; }
@@ -1314,7 +1351,7 @@ async function testConn(){
   }catch(e){ setSettingsMsg('No se pudo conectar. Revisa la URL del proyecto.',false); }
 }
 async function doUpload(){ saveSettings(); if(!sbReady()){ setSettingsMsg('Completa URL, clave e ID primero.',false); return; } setSettingsMsg('Subiendo…',null); setSyncStatus('syncing'); try{ await cloudPush(); setSyncStatus('ok'); setSettingsMsg('Datos subidos a la nube ✓',true); toast('Datos subidos a la nube'); }catch(e){ setSyncStatus('error'); setSettingsMsg('No se pudo subir: '+e.message,false); } }
-async function doDownload(){ saveSettings(); if(!sbReady()){ setSettingsMsg('Completa URL, clave e ID primero.',false); return; } if(!confirm('Descargar reemplazará los datos de ESTE dispositivo con los de la nube. ¿Continuar?'))return; setSettingsMsg('Descargando…',null); setSyncStatus('syncing'); try{ const remote=await cloudPull(); data=remote; ensureShape(); await storageSet(STORE_KEY,JSON.stringify(data)); setSyncStatus('ok'); setSettingsMsg('Datos descargados ✓',true); toast('Datos descargados de la nube'); render(); }catch(e){ setSyncStatus('error'); setSettingsMsg('No se pudo descargar: '+e.message,false); } }
+async function doDownload(){ saveSettings(); if(!sbReady()){ setSettingsMsg('Completa URL, clave e ID primero.',false); return; } if(!confirm('Descargar reemplazará los datos de ESTE dispositivo con los de la nube. ¿Continuar?'))return; setSettingsMsg('Descargando…',null); setSyncStatus('syncing'); try{ const row=await cloudPullRow(); if(!row)throw new Error('No hay datos en la nube con ese ID.'); data=row.data; ensureShape(); dataStamp=row.updated_at||new Date().toISOString(); try{localStorage.setItem(STAMP_KEY,dataStamp);}catch(e){} await storageSet(STORE_KEY,JSON.stringify(data)); setSyncStatus('ok'); setSettingsMsg('Datos descargados ✓',true); toast('Datos descargados de la nube'); render(); }catch(e){ setSyncStatus('error'); setSettingsMsg('No se pudo descargar: '+e.message,false); } }
 function copySql(){ if(navigator.clipboard){ navigator.clipboard.writeText(SQL_TEXT).then(()=>toast('SQL copiado')).catch(()=>{}); } }
 
 /* ---------- exportar ---------- */
