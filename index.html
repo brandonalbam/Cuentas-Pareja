@@ -1405,7 +1405,7 @@ function tagsCard(){
   return cardShellF('tag',secTitle('tag','Etiquetas'),`<div class="chips">${chips}</div><div class="budget-tag" style="margin-top:8px">Escribe #etiquetas en la descripción para agrupar gastos de un evento.</div>`);
 }
 function insightsHTML(){
-  return [goalsCardFull(),loansCard(),aportesCard(),catSpendCard(),compareCard(),chartCard(active),budgetsCard(),recurrentsCard(),remindersCard(),debtsCard(),tagsCard()].filter(Boolean).join('');
+  return [goalsCardFull(),loansCard(),aportesCard(),catSpendCard(),compareCard(),budgetsCard(),recurrentsCard(),debtsCard(),tagsCard()].filter(Boolean).join('');
 }
 
 
@@ -1883,7 +1883,6 @@ function openGuide(){
       <p><b>📎 Comprobantes:</b> adjunta la foto del recibo a cualquier movimiento.</p></div>
     <div class="guide-sec"><h4>🔁 Automatiza</h4>
       <p><b>Recurrentes:</b> arriendo, salario o suscripciones se registran solos cada mes (tarjeta "Recurrentes").</p>
-      <p><b>Próximos pagos:</b> anota cuentas por pagar y la app te avisa cuando se acerca el día; con "Pagar" queda registrado.</p>
       <p><b>Alertas:</b> si una categoría llega al 80% de su presupuesto (o se pasa), te avisamos al registrar el gasto.</p></div>
     <div class="guide-sec"><h4>💑 En pareja</h4>
       <p><b>Dividir gastos:</b> en Pareja, al registrar un gasto elige "¿Quién pagó?" y el porcentaje; la app lleva el saldo.</p>
