@@ -137,7 +137,7 @@
   .hero-ghost:active{transform:scale(.96)}
 
   /* ===== Resumen de totales ===== */
-  .summary{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:14px}
+  .summary{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-top:14px}
   .sumcard{padding:18px 18px 16px;transition:transform .28s var(--spring),box-shadow .28s}
   .sumcard:hover{transform:translateY(-3px);box-shadow:var(--shadow-2)}
   .sumcard .lbl{font-size:12px;font-weight:640;color:var(--label-3);text-transform:uppercase;letter-spacing:.06em}
@@ -528,6 +528,8 @@
   .flipcard .catgi{color:#fff}
   .loan-dir{background:var(--fill-2);border-radius:12px;padding:12px 14px;font-size:14px;margin-bottom:12px;color:var(--label);line-height:1.45}
   .loan-dir b{color:var(--accent)}
+  .sumcard{min-width:0}
+  .sumcard .val{white-space:nowrap;overflow:hidden}
 </style>
 
 </head>
@@ -1040,7 +1042,7 @@ function render(){
         <button class="toolbtn profile-btn" onclick="openProfiles()" title="Perfiles" aria-label="Perfiles"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2M12 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8z"/></svg></button>
       </div></div></div></header>
     <div class="wrap">${main}</div>`;
-  bindForm(); bindWallet();
+  bindForm(); bindWallet(); fitSummary();
 }
 
 function normalHTML(){
@@ -1115,6 +1117,13 @@ function monthBarHTML(){
   return `<div class="monthbar"><label>Periodo</label><select class="month" onchange="setMonth(this.value)">
     <option value="todos" ${monthSel==='todos'?'selected':''}>Todo el historial</option>
     ${months.map(m=>`<option value="${m}" ${monthSel===m?'selected':''}>${monthLabel(m)}</option>`).join('')}</select></div>`;
+}
+function fitSummary(){
+  document.querySelectorAll('.sumcard .val').forEach(el=>{
+    el.style.fontSize='';
+    let size=parseFloat(getComputedStyle(el).fontSize)||22, guard=0;
+    while(el.scrollWidth>el.clientWidth+0.5 && size>11 && guard<48){ size-=0.5; el.style.fontSize=size+'px'; guard++; }
+  });
 }
 function summaryHTML(){
   const t = periodTotals(active);
@@ -1941,6 +1950,7 @@ function toastAction(msg,label,fn){ const t=document.createElement('div'); t.cla
 /* Bloqueo total de zoom (pellizco y doble toque), app estática */
 ['gesturestart','gesturechange','gestureend'].forEach(function(ev){ document.addEventListener(ev,function(e){ e.preventDefault(); },{passive:false}); });
 document.addEventListener('dblclick',function(e){ e.preventDefault(); },{passive:false});
+window.addEventListener('resize',function(){ try{ fitSummary(); }catch(e){} });
 document.addEventListener('touchmove',function(e){ if(e.touches&&e.touches.length>1) e.preventDefault(); },{passive:false});
 document.addEventListener('wheel',function(e){ if(e.ctrlKey) e.preventDefault(); },{passive:false});
 document.addEventListener('keydown',function(e){ if((e.ctrlKey||e.metaKey)&&['+','-','=','0','_'].indexOf(e.key)>=0) e.preventDefault(); },{passive:false});
