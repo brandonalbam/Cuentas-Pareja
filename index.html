@@ -601,6 +601,26 @@
   .cev.paid{opacity:.5;text-decoration:line-through}
   .cmore{font-size:8px;color:rgba(255,255,255,.65);text-align:left;padding-left:2px}
   .calcard .cdone{position:absolute;top:2px;right:3px;font-size:9px;color:#7BE5B0;font-weight:800}
+
+  /* ===== Legibilidad de Nuevo movimiento y Movimientos sobre color ===== */
+  #formCard .field label,#formCard .hintline,#txPanel .empty,#txPanel .empty p{color:rgba(255,255,255,.9)}
+  #formCard .field input,#formCard .field select,#formCard .amountwrap input,#txPanel .filters input,#txPanel .filters select{background:rgba(255,255,255,.16);color:#fff;border:none}
+  #formCard .field input::placeholder,#formCard .field textarea::placeholder,#txPanel .filters input::placeholder{color:rgba(255,255,255,.6)}
+  #formCard .amountwrap span{color:rgba(255,255,255,.85)}
+  #formCard .field select option,#txPanel .filters select option{color:#111}
+  #formCard .typetoggle{background:rgba(255,255,255,.16)}
+  #formCard .typetoggle button{color:rgba(255,255,255,.85)}
+  #formCard .typetoggle button.on{background:#fff;color:#0E3327}
+  #formCard .btn-primary{background:#fff;color:#123}
+  #formCard .attachbtn{background:rgba(255,255,255,.16);color:#fff}
+  #formCard .attachbtn.has{background:rgba(255,255,255,.28)}
+  #formCard .btn-ghost{color:#fff}
+  #txPanel .count{background:rgba(255,255,255,.22);color:#fff}
+  #txPanel .tx .meta{color:rgba(255,255,255,.72)}
+  #txPanel .tx{border-color:rgba(255,255,255,.14)}
+  #txPanel .tx .iconbtn{color:rgba(255,255,255,.7)}
+  #txPanel .tx-list{max-height:460px;overflow:auto}
+  #formCard .field input[type=date]{color-scheme:dark}
 </style>
 
 </head>
@@ -972,7 +992,8 @@ const ICO={
  list:'<path d="M9 6.5h11M9 12h11M9 17.5h11"/><circle cx="4.5" cy="6.5" r="1.2"/><circle cx="4.5" cy="12" r="1.2"/><circle cx="4.5" cy="17.5" r="1.2"/>',
  info:'<circle cx="12" cy="12" r="9"/><path d="M12 11.5v5"/><circle cx="12" cy="7.8" r=".7" fill="currentColor" stroke="none"/>',
  back:'<path d="M9 14l-4-4 4-4"/><path d="M5 10h9a5 5 0 0 1 0 10h-2"/>',
- chevron:'<path d="M6 9l6 6 6-6"/>'
+ chevron:'<path d="M6 9l6 6 6-6"/>',
+ plus:'<path d="M12 5v14M5 12h14"/>'
 };
 function svgIco(name){ return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">'+(ICO[name]||'')+'</svg>'; }
 function secTitle(name,text){ return '<span class="sec-ic">'+svgIco(name)+'</span>'+text; }
@@ -1294,8 +1315,8 @@ function render(){
 }
 
 function normalHTML(){
-  return `${walletStackHTML()}${monthBarHTML()}${summaryHTML()}${formHTML()}
-    <div class="grid"><div class="card panel" id="txPanel">${txPanelHTML()}</div><div id="insightsCol">${insightsHTML()}</div></div>`;
+  return `${walletStackHTML()}${calendarCard()}${monthBarHTML()}${summaryHTML()}${colorWrap('formCard','#5E9E77',!form.editingId,formHTML())}${colorWrap('txPanel','#5E82A6',true,txPanelHTML(),'txFace')}
+    <div class="grid"><div id="insightsCol">${insightsHTML()}</div></div>`;
 }
 
 function avatarHTML(k,cls){
@@ -1313,6 +1334,7 @@ function hexShade(hex,pct){ hex=String(hex).replace('#',''); if(hex.length===3)h
   return '#'+h(f(r))+h(f(g))+h(f(b)); }
 function acctGradient(k){ const c=ACCENTS[k]||'#666'; return `linear-gradient(145deg,${hexShade(c,.24)} 0%,${c} 48%,${hexShade(c,-.22)} 100%)`; }
 function colorGradient(c){ return `linear-gradient(145deg,${hexShade(c,.26)} 0%,${c} 46%,${hexShade(c,-.24)} 100%)`; }
+function colorWrap(id,col,collapsed,inner,faceId){ return `<div class="flipcard insight${collapsed?' collapsed':''}" id="${id}" style="--cardc:${col};--cardg:${colorGradient(col)}"><div class="flipface flipfront card panel"${faceId?` id="${faceId}"`:''}>${inner}</div></div>`; }
 function walletStackHTML(){
   const s=accStats(active), base=acc().patrimonioBase||0, pend=debtPendingOf(active);
   let sub;
@@ -1386,9 +1408,8 @@ function formHTML(){
   const editing=form.editingId?acc().transactions.find(t=>t.id===form.editingId):null;
   const showPayer = active==='pareja' && form.type==='gasto' && !editing;
   const rec=form.receipt||(editing&&editing.receipt);
-  return `<div class="card formcard">
-    <div class="formhead"><h3>${editing?'Editar movimiento':'Nuevo movimiento'}</h3>
-      <div class="typetoggle"><button data-t="gasto" class="${form.type==='gasto'?'on':''}" onclick="setFormType('gasto')">Gasto</button><button data-t="ingreso" class="${form.type==='ingreso'?'on':''}" onclick="setFormType('ingreso')">Ingreso</button></div></div>
+  return `<h3 class="sec cardhead" onclick="toggleCard('formCard',event)">${secTitle('plus', editing?'Editar movimiento':'Nuevo movimiento')}<span class="secright"><span class="chev">${svgIco('chevron')}</span></span></h3>
+    <div class="cardbody"><div class="typetoggle"><button data-t="gasto" class="${form.type==='gasto'?'on':''}" onclick="setFormType('gasto')">Gasto</button><button data-t="ingreso" class="${form.type==='ingreso'?'on':''}" onclick="setFormType('ingreso')">Ingreso</button></div>
     <div class="frow">
       <div class="field"><label>Monto</label><div class="amountwrap"><span>$</span><input id="f_amount" class="num money-in" inputmode="numeric" placeholder="0" value="${editing?groupThousands(editing.amount):''}"></div></div>
       <div class="field"><label>Categoría</label><select id="f_cat" onchange="catTouched=true;hideSuggest()">
@@ -1420,8 +1441,8 @@ function txPanelHTML(){
   const allCats=acc().categories;
   const tagsHere=[...new Set([].concat.apply([],txInScope(k).map(t=>t.tags||[])))];
   const rows=list.length?list.map(t=>txRowHTML(t,k)).join(''):`<div class="empty"><div class="big">🧾</div><p>No hay movimientos aquí todavía.<br>Agrega el primero arriba.</p></div>`;
-  return `<h3 class="sec">${secTitle('list','Movimientos')} <span class="count">${list.length}</span></h3>
-    <div class="filters">
+  return `<h3 class="sec cardhead" onclick="toggleCard('txPanel',event)">${secTitle('list','Movimientos')} <span class="count">${list.length}</span><span class="secright"><span class="chev">${svgIco('chevron')}</span></span></h3>
+    <div class="cardbody"><div class="filters">
       <input placeholder="Buscar…" value="${escapeAttr(filters.search)}" oninput="setFilter('search',this.value)">
       <select onchange="setFilter('type',this.value)">
         <option value="todos" ${filters.type==='todos'?'selected':''}>Todos</option>
@@ -1435,7 +1456,7 @@ function txPanelHTML(){
         <option value="todas" ${filters.tag==='todas'?'selected':''}>Todas las etiquetas</option>
         ${tagsHere.map(tg=>`<option value="${tg}" ${filters.tag===tg?'selected':''}>#${tg}</option>`).join('')}</select>`:''}
     </div>
-    <div class="tx-list">${rows}</div>`;
+    <div class="tx-list">${rows}</div></div>`;
 }
 function txRowHTML(t,k){
   const del=`<button class="iconbtn" onclick="delTx('${t.id}','${k}')" aria-label="Eliminar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m2 0v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/></svg></button>`;
@@ -1675,7 +1696,7 @@ function tagsCard(){
   return cardShellF('tag',secTitle('tag','Etiquetas'),`<div class="chips">${chips}</div><div class="budget-tag" style="margin-top:8px">Escribe #etiquetas en la descripción para agrupar gastos de un evento.</div>`);
 }
 function insightsHTML(){
-  return [calendarCard(),goalsCardFull(),aportesCard(),catSpendCard(),budgetsCard(),debtsCard(),tagsCard()].filter(Boolean).join('');
+  return [goalsCardFull(),aportesCard(),catSpendCard(),budgetsCard(),debtsCard(),tagsCard()].filter(Boolean).join('');
 }
 
 
@@ -1683,7 +1704,7 @@ function insightsHTML(){
 function switchAccount(k){ if(accountLocked(k)){ openLock(k); return; } active=k; form={type:'gasto',editingId:null,receipt:null}; catTouched=false; filters={search:'',type:'todos',cat:'todas',tag:'todas'}; render(); }
 function setMonth(v){ monthSel=v; render(); }
 function setFormType(t){ form.type=t; catTouched=false; render(); }
-function setFilter(key,val){ filters[key]=val; if(key==='search'){ const p=document.getElementById('txPanel'); if(p)p.innerHTML=txPanelHTML(); } else render(); }
+function setFilter(key,val){ filters[key]=val; if(key==='search'){ const p=document.getElementById('txFace'); if(p)p.innerHTML=txPanelHTML(); } else render(); }
 function bindForm(){
   const a=document.getElementById('f_amount'); if(a)a.addEventListener('keydown',e=>{if(e.key==='Enter')submitForm();});
   const d=document.getElementById('f_desc'); if(d){ d.addEventListener('keydown',e=>{if(e.key==='Enter')submitForm();}); d.addEventListener('input',onDescInput); }
