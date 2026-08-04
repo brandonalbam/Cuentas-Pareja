@@ -579,6 +579,28 @@
   .chkrow{display:flex;align-items:center;gap:9px;font-size:15px;padding:9px 0}
   #ev_monthly{width:22px;height:22px;accent-color:var(--accent);flex:none}
   .calcard .sec-ic{background:var(--accent-soft);color:var(--accent)}
+
+  /* ===== Calendario: fondo verde oscuro + previsualización por día ===== */
+  .calcard{background:linear-gradient(158deg,#15493B 0%,#0C2C22 100%);border-radius:var(--r-card);padding:18px;box-shadow:var(--shadow-1);color:#fff}
+  .calcard .sec{color:#fff}
+  .calcard .sec-ic{background:rgba(255,255,255,.18);color:#fff}
+  .calcard .chev,.calcard .count{color:#fff}
+  .calcard .count{background:rgba(255,255,255,.2)}
+  .calcard .calmonth{color:#fff}
+  .calcard .calweek div{color:rgba(255,255,255,.55)}
+  .calcard .mini-btn{background:rgba(255,255,255,.14);color:#fff}
+  .calcard .mini-btn.accent{background:#fff;color:#0E3327}
+  .calcard .calgrid,.calcard .calweek{gap:4px}
+  .calcard .cday{aspect-ratio:auto;min-height:58px;align-items:stretch;padding:3px;background:rgba(255,255,255,.07);overflow:hidden}
+  .calcard .cday .cnum{font-size:11px;font-weight:700;color:#fff;text-align:left;padding:0 1px;line-height:1.15}
+  .calcard .cday.has{background:rgba(255,255,255,.13)}
+  .calcard .cday.today{background:rgba(255,255,255,.22);box-shadow:inset 0 0 0 1.5px #fff}
+  .calcard .cday.overdue{box-shadow:inset 0 0 0 1.5px #FF6B6B}
+  .cevs{display:flex;flex-direction:column;gap:1.5px;margin-top:2px;min-width:0}
+  .cev{font-size:8.5px;line-height:1.2;font-weight:600;padding:1px 3px;border-radius:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:#fff;text-align:left;max-width:100%}
+  .cev.paid{opacity:.5;text-decoration:line-through}
+  .cmore{font-size:8px;color:rgba(255,255,255,.65);text-align:left;padding-left:2px}
+  .calcard .cdone{position:absolute;top:2px;right:3px;font-size:9px;color:#7BE5B0;font-weight:800}
 </style>
 
 </head>
@@ -1125,8 +1147,8 @@ function calendarCard(){
     const isToday=(ym===curYm&&d===todayD);
     const overdue=(ym===curYm&&d<todayD&&de.some(ev=>!calEventPaid(ev,ym)));
     const allPaid=de.length>0&&de.every(ev=>calEventPaid(ev,ym));
-    const dots=de.slice(0,4).map(ev=>{ const tg=calTagOf(ev.tagId); return `<span class="cdot${calEventPaid(ev,ym)?' paid':''}" style="background:${tg?tg.color:'#8E8E93'}"></span>`; }).join('');
-    cells+=`<button class="cday${isToday?' today':''}${overdue?' overdue':''}${de.length?' has':''}" onclick="openDayModal('${ym}',${d})"><span class="cnum">${d}</span><span class="cdots">${dots}</span>${allPaid?'<span class="cdone">✓</span>':''}</button>`;
+    const preview=de.slice(0,2).map(ev=>{ const tg=calTagOf(ev.tagId); return `<span class="cev${calEventPaid(ev,ym)?' paid':''}" style="background:${tg?tg.color:'#6B7280'}">${escapeHtml(ev.title)}</span>`; }).join(''); const more=de.length>2?`<span class="cmore">+${de.length-2}</span>`:'';
+    cells+=`<button class="cday${isToday?' today':''}${overdue?' overdue':''}${de.length?' has':''}" onclick="openDayModal('${ym}',${d})"><span class="cnum">${d}</span><span class="cevs">${preview}${more}</span>${allPaid?'<span class="cdone">✓</span>':''}</button>`;
   }
   const grid=`<div class="calnav"><button class="mini-btn" onclick="navCal(-1)">‹</button><div class="calmonth">${fullMonthLabel(ym)}</div><button class="mini-btn" onclick="navCal(1)">›</button></div>
     <div class="calweek">${['L','M','M','J','V','S','D'].map(x=>`<div>${x}</div>`).join('')}</div>
@@ -1653,7 +1675,7 @@ function tagsCard(){
   return cardShellF('tag',secTitle('tag','Etiquetas'),`<div class="chips">${chips}</div><div class="budget-tag" style="margin-top:8px">Escribe #etiquetas en la descripción para agrupar gastos de un evento.</div>`);
 }
 function insightsHTML(){
-  return [calendarCard(),goalsCardFull(),loansCard(),aportesCard(),catSpendCard(),compareCard(),budgetsCard(),debtsCard(),tagsCard()].filter(Boolean).join('');
+  return [calendarCard(),goalsCardFull(),aportesCard(),catSpendCard(),budgetsCard(),debtsCard(),tagsCard()].filter(Boolean).join('');
 }
 
 
