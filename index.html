@@ -623,10 +623,46 @@
   #txPanel .tx .iconbtn{color:rgba(255,255,255,.7)}
   #txPanel .tx-list{max-height:460px;overflow:auto}
   #formCard .field input[type=date]{color-scheme:dark}
+
+  /* ===== Registro rápido por voz ===== */
+  .qe-fab{position:fixed;right:calc(18px + env(safe-area-inset-right,0px));bottom:calc(22px + env(safe-area-inset-bottom,0px));width:58px;height:58px;border-radius:50%;border:none;background:var(--accent);color:#fff;display:flex;align-items:center;justify-content:center;z-index:50;box-shadow:0 12px 28px -8px rgba(0,0,0,.55),0 0 0 4px rgba(255,255,255,.06);cursor:pointer;transition:transform .25s var(--spring)}
+  .qe-fab:active{transform:scale(.9)}
+  .qe-fab svg{width:26px;height:26px}
+  .qe-mic-wrap{display:flex;flex-direction:column;align-items:center;gap:8px;margin:6px 0 14px}
+  .qe-mic{width:76px;height:76px;border-radius:50%;border:none;background:var(--accent);color:#fff;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:transform .25s var(--spring);box-shadow:0 10px 26px -10px var(--accent)}
+  .qe-mic svg{width:32px;height:32px}
+  .qe-mic:active{transform:scale(.92)}
+  .qe-mic.on{background:var(--bad);animation:qepulse 1.3s ease-in-out infinite}
+  @keyframes qepulse{0%{box-shadow:0 0 0 0 rgba(255,69,58,.45)}70%{box-shadow:0 0 0 18px rgba(255,69,58,0)}100%{box-shadow:0 0 0 0 rgba(255,69,58,0)}}
+  .qe-mic-lbl{font-size:13px;color:var(--label-2);text-align:center;max-width:280px;line-height:1.4}
+  .qe-text{width:100%;min-height:84px;padding:12px 14px;border-radius:14px;border:none;background:var(--fill-2);color:var(--label);font-size:16px;line-height:1.45;resize:vertical;font-family:inherit}
+  .qe-head{font-size:12.5px;font-weight:640;color:var(--label-2);text-transform:uppercase;letter-spacing:.05em;margin:16px 0 8px}
+  .qe-item{background:var(--fill-2);border-radius:14px;padding:10px;margin-bottom:9px;border-left:4px solid var(--bad)}
+  .qe-item.ingreso{border-left-color:var(--good)}
+  .qe-row{display:flex;gap:8px;align-items:center;min-width:0}
+  .qe-row+.qe-row,.qe-desc+.qe-row{margin-top:8px}
+  .qe-item select,.qe-item input{min-width:0;padding:9px 10px;border-radius:10px;border:none;background:var(--fill);color:var(--label);font-size:15px}
+  .qe-type{flex:none;width:96px}
+  .qe-amt{flex:1;min-width:0}
+  .qe-amt input{width:100%}
+  .qe-desc{width:100%;margin-top:8px}
+  .qe-cat{flex:1}
+  .qe-date{flex:none;width:140px}
 </style>
 
 </head>
 <body>
+  <div class="modal-bg" id="quickModal"><div class="modal">
+    <div class="modal-head"><h3>Registro rápido</h3><button class="closebtn" onclick="closeQuick()">✕</button></div>
+    <div class="modal-body">
+      <p class="modal-note">Habla o escribe como se lo contarías a alguien, por ejemplo: <b>"café 4 mil y mercado 40 mil ayer"</b>. La app separa cada movimiento y le pone monto, fecha y categoría. Revísalos antes de registrar.</p>
+      <div class="qe-mic-wrap"><button class="qe-mic" id="qe_mic" onclick="toggleMic()" aria-label="Dictar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5.5 11a6.5 6.5 0 0 0 13 0M12 17.5V21M8.5 21h7"/></svg></button><div class="qe-mic-lbl" id="qe_micLbl">Toca para hablar</div></div>
+      <textarea id="qe_text" class="qe-text" rows="3" placeholder="Ej: almuerzo 25 mil, taxi 12 mil y me pagaron la quincena 1,5 millones" oninput="qeLive()"></textarea>
+      <div id="qe_preview"></div>
+      <div class="modal-actions"><button class="btn-primary" id="qe_save" onclick="saveQuick()" style="display:none">Registrar</button><button class="btn-ghost" onclick="closeQuick()">Cancelar</button></div>
+    </div>
+  </div></div>
+  <button class="qe-fab" id="qeFab" onclick="openQuick()" aria-label="Registro rápido por voz"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5.5 11a6.5 6.5 0 0 0 13 0M12 17.5V21M8.5 21h7"/></svg></button>
   <div id="app" class="loading">Cargando tus cuentas…</div>
 
   <div class="modal-bg" id="catModal"><div class="modal">
@@ -958,6 +994,98 @@ function goalMonthlyNeeded(target,saved,deadlineYm,todayYm){
   if(meses<=0)return{overdue:true,perMonth:falta,months:0};
   return{overdue:false,perMonth:Math.ceil(falta/meses),months:meses};
 }
+
+/* ---- Registro rápido: interpreta frases como "café 4 mil y mercado 40 mil ayer" ---- */
+const QE_UNITS={un:1,uno:1,una:1,dos:2,tres:3,cuatro:4,cinco:5,seis:6,siete:7,ocho:8,nueve:9,diez:10,once:11,doce:12,trece:13,catorce:14,quince:15,dieciseis:16,diecisiete:17,dieciocho:18,diecinueve:19,veinte:20,veintiun:21,veintiuno:21,veintiuna:21,veintidos:22,veintitres:23,veinticuatro:24,veinticinco:25,veintiseis:26,veintisiete:27,veintiocho:28,veintinueve:29,treinta:30,cuarenta:40,cincuenta:50,sesenta:60,setenta:70,ochenta:80,noventa:90,cien:100,ciento:100,doscientos:200,doscientas:200,trescientos:300,trescientas:300,cuatrocientos:400,cuatrocientas:400,quinientos:500,quinientas:500,seiscientos:600,seiscientas:600,setecientos:700,setecientas:700,ochocientos:800,ochocientas:800,novecientos:900,novecientas:900};
+const QE_TENS=['treinta','cuarenta','cincuenta','sesenta','setenta','ochenta','noventa'];
+const QE_THOU={mil:1,k:1,luca:1,lucas:1};
+const QE_MILL={millon:1,millones:1,palo:1,palos:1};
+const QE_SEP={'|':1,luego:1,despues:1,tambien:1,ademas:1,entonces:1};
+const QE_FILL={gaste:1,gastamos:1,gasto:1,pague:1,pagamos:1,pago:1,compre:1,compramos:1,me:1,nos:1,se:1,le:1,costo:1,costaron:1,valio:1,valieron:1,salio:1,fue:1,fueron:1,por:1,de:1,del:1,en:1,el:1,la:1,los:1,las:1,lo:1,un:1,una:1,unos:1,unas:1,al:1,a:1,con:1,que:1,y:1,para:1,pagaron:1,recibi:1,recibimos:1,cobre:1,cobramos:1,consignaron:1,transfirieron:1,enviaron:1,devolvieron:1,gane:1,ganamos:1,entro:1,entraron:1,llego:1};
+const QE_ING=/\b(pagaron|recibi|recibimos|cobre|cobramos|ingresos?|salario|sueldo|quincena|nomina|consignaron|transfirieron|me enviaron|me devolvieron|reembolso|vendi|vendimos|venta|gane|ganamos|honorarios|me entro|entraron|me llego)\b/;
+function qeNorm(s){ return String(s||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,''); }
+function qeDigitVal(t){ const p=t.split('§'); if(p.length===1)return parseInt(p[0],10); if(p.slice(1).every(x=>x.length===3))return parseInt(p.join(''),10); if(p.length===2)return parseFloat(p[0]+'.'+p[1]); return parseInt(p.join(''),10); }
+function qeKind(n){ if(/^\d[\d§]*$/.test(n))return 'digit'; if(QE_THOU[n])return 'thou'; if(QE_MILL[n])return 'mill'; if(Object.prototype.hasOwnProperty.call(QE_UNITS,n)){ const v=QE_UNITS[n]; return v>=100?'hund':(QE_TENS.indexOf(n)>=0?'tens':'unit'); } return null; }
+function qeTokens(text){
+  let s=String(text||'');
+  s=s.replace(/(\d)[.,](?=\d)/g,'$1§');
+  s=s.replace(/\$\s*/g,' ');
+  s=s.replace(/(\d)(mill[oó]n(?:es)?|k|mil|lucas?|palos?)(?![a-zA-ZñÑáéíóúÁÉÍÓÚ])/gi,'$1 $2');
+  s=s.replace(/[,;.!?¿¡:\n\r]+/g,' | ');
+  return s.split(/\s+/).filter(Boolean).map(r=>({r:r.replace(/^["'(\[]+|["')\]]+$/g,''), n:qeNorm(r).replace(/[^a-z0-9§|]/g,'')})).filter(t=>t.n!=='');
+}
+function qeSplitClauses(T){
+  const out=[]; let cur=[];
+  for(let i=0;i<T.length;i++){ const n=T[i].n;
+    if(QE_SEP[n]){ if(cur.length)out.push(cur); cur=[]; continue; }
+    if(n==='y'){ const p=T[i-1]?T[i-1].n:'', nx=T[i+1]?T[i+1].n:'';
+      const inNum=(QE_TENS.indexOf(p)>=0&&qeKind(nx)==='unit')||(QE_MILL[p]&&nx==='medio');
+      if(!inNum){ if(cur.length)out.push(cur); cur=[]; continue; } }
+    cur.push(T[i]);
+  }
+  if(cur.length)out.push(cur); return out;
+}
+function qeReadAmount(T,i){
+  let total=0,cur=0,j=i,prev=null,hasMult=false,hasBig=false;
+  if(T[i].n==='medio'){ if(T[i+1]&&QE_MILL[T[i+1].n]){ cur=0.5; prev='unit'; j=i+1; } else return null; }
+  while(j<T.length){ const n=T[j].n, k=qeKind(n);
+    if(n==='y'){ const nx=T[j+1]?T[j+1].n:'';
+      if(prev==='tens'&&qeKind(nx)==='unit'){ j++; continue; }
+      if(prev==='mill'&&nx==='medio'){ total+=500000; j+=2; continue; }
+      break; }
+    if(!k)break;
+    if(k==='digit'){ if(prev&&prev!=='mill'&&prev!=='thou')break; const v=qeDigitVal(n); if(prev==='thou'&&v<100)break; cur+=v; if(v>=100)hasBig=true; prev='digit'; }
+    else if(k==='unit'||k==='tens'||k==='hund'){ if(prev==='digit'||prev==='unit')break; if(prev==='tens'&&k!=='unit')break; if(prev==='hund'&&k==='hund')break; cur+=QE_UNITS[n]; prev=k; }
+    else if(k==='thou'){ if(prev==='thou')break; cur=(cur||1)*1000; prev='thou'; hasMult=true; }
+    else if(k==='mill'){ if(prev==='mill')break; total+=(cur||1)*1000000; cur=0; prev='mill'; hasMult=true; }
+    j++;
+  }
+  if(j===i||(!hasMult&&!hasBig))return null;
+  while(T[j]&&(T[j].n==='pesos'||T[j].n==='cop'))j++;
+  return {value:Math.round(total+cur),start:i,end:j};
+}
+function qeDateOf(C){ /* quita palabras de fecha de una cláusula; devuelve {toks,off|null} */
+  let off=null; const keep=[];
+  for(let i=0;i<C.length;i++){ const n=C[i].n, n1=C[i+1]?C[i+1].n:'', n2=C[i+2]?C[i+2].n:'';
+    if(n==='hoy'){off=0;continue;} if(n==='ayer'||n==='anoche'){off=-1;continue;} if(n==='anteayer'||n==='antier'){off=-2;continue;}
+    if(n==='antes'&&n1==='de'&&n2==='ayer'){off=-2;i+=2;continue;}
+    if(n==='esta'&&(n1==='manana'||n1==='tarde'||n1==='noche')){off=0;i+=1;continue;}
+    keep.push(C[i]);
+  }
+  return {toks:keep,off};
+}
+function qeDesc(toks){
+  let a=0,b=toks.length;
+  while(a<b&&QE_FILL[toks[a].n])a++;
+  while(b>a&&QE_FILL[toks[b-1].n])b--;
+  let s=toks.slice(a,b).map(t=>t.r).join(' ').replace(/§/g,'.').replace(/\s+/g,' ').trim();
+  return s?s.charAt(0).toUpperCase()+s.slice(1):'';
+}
+function qeIsoAdd(iso,d){ const p=iso.split('-').map(Number); return new Date(Date.UTC(p[0],p[1]-1,p[2]+d)).toISOString().slice(0,10); }
+function parseQuickEntry(text,todayIso){
+  const clauses=qeSplitClauses(qeTokens(text)).map(qeDateOf);
+  const withDate=clauses.filter(c=>c.off!==null);
+  const single=withDate.length===1?withDate[0].off:null;
+  const items=[]; let carry=0, pending=[];
+  clauses.forEach(cl=>{
+    if(single===null&&cl.off!==null)carry=cl.off;
+    const off=single!==null?single:carry, C=cl.toks;
+    const spans=[]; let i=0;
+    while(i<C.length){ const k=qeKind(C[i].n); if(k||C[i].n==='medio'){ const a=qeReadAmount(C,i); if(a){ spans.push(a); i=a.end; continue; } } i++; }
+    if(!spans.length){ pending=pending.concat(pending.length&&C.length?[{r:'y',n:'y_'}]:[],C); return; }
+    const before=spans[0].start>0;
+    spans.forEach((sp,idx)=>{
+      let from,to;
+      if(before){ from=idx===0?0:spans[idx-1].end; to=idx===spans.length-1?C.length:sp.end; }
+      else{ from=sp.start; to=idx===spans.length-1?C.length:spans[idx+1].start; }
+      let toks=C.slice(from,to).filter((t,ix)=>{ const p=from+ix; return p<sp.start||p>=sp.end; });
+      if(idx===0&&pending.length){ toks=pending.concat(toks.length?[{r:'y',n:'y_'}]:[],toks); pending=[]; }
+      const type=QE_ING.test(toks.map(t=>t.n).join(' '))?'ingreso':'gasto';
+      items.push({type,amount:sp.value,desc:qeDesc(toks),date:qeIsoAdd(todayIso,off)});
+    });
+  });
+  return items.filter(it=>it.amount>0);
+}
 /*PURE_END*/
 
 /* ================== UTILIDADES ================== */
@@ -995,7 +1123,8 @@ const ICO={
  info:'<circle cx="12" cy="12" r="9"/><path d="M12 11.5v5"/><circle cx="12" cy="7.8" r=".7" fill="currentColor" stroke="none"/>',
  back:'<path d="M9 14l-4-4 4-4"/><path d="M5 10h9a5 5 0 0 1 0 10h-2"/>',
  chevron:'<path d="M6 9l6 6 6-6"/>',
- plus:'<path d="M12 5v14M5 12h14"/>'
+ plus:'<path d="M12 5v14M5 12h14"/>',
+ mic:'<rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5.5 11a6.5 6.5 0 0 0 13 0M12 17.5V21M8.5 21h7"/>'
 };
 function svgIco(name){ return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">'+(ICO[name]||'')+'</svg>'; }
 function secTitle(name,text){ return '<span class="sec-ic">'+svgIco(name)+'</span>'+text; }
@@ -1298,6 +1427,66 @@ async function toggleNotify(){
   render();
 }
 
+
+/* ================== REGISTRO RÁPIDO (voz o texto) ================== */
+let quick={items:[],listening:false}, qeRec=null, qeTimer=null;
+function qeSpeechOK(){ return !!(window.SpeechRecognition||window.webkitSpeechRecognition); }
+function qeDefaultCat(kind){ const cs=acc().categories.filter(c=>c.kind===kind); const o=cs.find(c=>/otros/i.test(c.name)); return o?o.id:(cs[0]?cs[0].id:''); }
+function openQuick(){ quick.items=[]; document.getElementById('qe_text').value=''; renderQuickPreview(); updateMicUI(); openM('quickModal'); }
+function closeQuick(){ try{ if(qeRec)qeRec.abort(); }catch(e){} quick.listening=false; clearTimeout(qeTimer); closeM('quickModal'); }
+function updateMicUI(){
+  const b=document.getElementById('qe_mic'), l=document.getElementById('qe_micLbl'); if(!b||!l)return;
+  if(!qeSpeechOK()){ b.style.display='none'; l.textContent='Para dictar, toca el cuadro de texto y usa el micrófono del teclado de tu celular.'; return; }
+  b.classList.toggle('on',quick.listening); l.textContent=quick.listening?'Escuchando… toca para terminar':'Toca para hablar';
+}
+function toggleMic(){
+  if(quick.listening){ try{ qeRec&&qeRec.stop(); }catch(e){} return; }
+  const SR=window.SpeechRecognition||window.webkitSpeechRecognition; if(!SR){ updateMicUI(); return; }
+  const ta=document.getElementById('qe_text'), base=ta.value.trim();
+  qeRec=new SR(); qeRec.lang='es-CO'; qeRec.interimResults=true; qeRec.continuous=false; qeRec.maxAlternatives=1;
+  qeRec.onresult=e=>{ let t=''; for(let i=0;i<e.results.length;i++) t+=e.results[i][0].transcript; ta.value=(base?base+', ':'')+t; };
+  qeRec.onerror=e=>{ quick.listening=false; updateMicUI();
+    if(e.error==='not-allowed'||e.error==='service-not-allowed') toast('Permite el uso del micrófono para poder dictar');
+    else if(e.error!=='no-speech'&&e.error!=='aborted') toast('No se pudo escuchar ('+e.error+')'); };
+  qeRec.onend=()=>{ quick.listening=false; updateMicUI(); if(ta.value.trim()) interpretQuick(); };
+  try{ qeRec.start(); quick.listening=true; updateMicUI(); }catch(e){ toast('No se pudo iniciar el micrófono'); }
+}
+function qeLive(){ clearTimeout(qeTimer); qeTimer=setTimeout(()=>interpretQuick(true),550); }
+function interpretQuick(silent){
+  const txt=document.getElementById('qe_text').value;
+  quick.items=parseQuickEntry(txt,todayISO()).map(it=>Object.assign({},it,{categoryId:suggestCategory(it.desc||'',active,it.type)||qeDefaultCat(it.type)}));
+  renderQuickPreview();
+  if(!silent&&!quick.items.length&&txt.trim()) toast('No encontré montos. Ejemplo: "café 4 mil y mercado 40 mil"');
+}
+function renderQuickPreview(){
+  const box=document.getElementById('qe_preview'), btn=document.getElementById('qe_save'); if(!box)return;
+  if(!quick.items.length){ box.innerHTML=''; btn.style.display='none'; return; }
+  box.innerHTML='<div class="qe-head">Así quedarían:</div>'+quick.items.map((it,i)=>{
+    const cats=acc().categories.filter(c=>c.kind===it.type);
+    return `<div class="qe-item ${it.type}">
+      <div class="qe-row"><select class="qe-type" onchange="qeSet(${i},'type',this.value)"><option value="gasto" ${it.type==='gasto'?'selected':''}>Gasto</option><option value="ingreso" ${it.type==='ingreso'?'selected':''}>Ingreso</option></select>
+        <div class="amountwrap qe-amt"><span>$</span><input class="num" inputmode="numeric" value="${groupThousands(it.amount)}" onchange="qeSet(${i},'amount',this.value)" style="padding-left:26px"></div>
+        <button class="iconbtn" onclick="qeDel(${i})" aria-label="Quitar">✕</button></div>
+      <input class="qe-desc" value="${escapeAttr(it.desc)}" placeholder="Descripción" onchange="qeSet(${i},'desc',this.value)">
+      <div class="qe-row"><select class="qe-cat" onchange="qeSet(${i},'categoryId',this.value)">${cats.map(c=>`<option value="${c.id}" ${c.id===it.categoryId?'selected':''}>${catOptLabel(c)}</option>`).join('')}</select>
+        <input type="date" class="qe-date" value="${it.date}" onchange="qeSet(${i},'date',this.value)"></div></div>`;
+  }).join('');
+  btn.style.display=''; btn.textContent='Registrar '+quick.items.length+' movimiento'+(quick.items.length>1?'s':'');
+}
+function qeSet(i,k,v){ const it=quick.items[i]; if(!it)return;
+  if(k==='amount') it.amount=parseAmountStr(v); else it[k]=v;
+  if(k==='type'){ it.categoryId=suggestCategory(it.desc||'',active,v)||qeDefaultCat(v); renderQuickPreview(); }
+}
+function qeDel(i){ quick.items.splice(i,1); renderQuickPreview(); }
+async function saveQuick(){
+  const items=quick.items.filter(it=>it.amount>0&&it.categoryId);
+  if(!items.length){ alert('No hay movimientos válidos para registrar (revisa monto y categoría).'); return; }
+  items.forEach(it=>{ const description=(it.desc||'').trim(); acc().transactions.push({id:uid(),type:it.type,amount:it.amount,categoryId:it.categoryId,date:it.date||todayISO(),description,tags:extractTags(description)}); });
+  let alertMsg=null; items.forEach(it=>{ if(it.type==='gasto'){ const m=budgetAlert(it.categoryId,it.amount,it.date); if(m)alertMsg=m; } });
+  quick.items=[]; closeQuick(); await save(); render();
+  toast(alertMsg||('✓ '+items.length+' movimiento'+(items.length>1?'s registrados':' registrado')));
+}
+
 /* ================== RENDER ================== */
 function render(){
   document.documentElement.style.setProperty('--accent',ACCENTS[active]);
@@ -1412,7 +1601,7 @@ function formHTML(){
   const editing=form.editingId?acc().transactions.find(t=>t.id===form.editingId):null;
   const showPayer = active==='pareja' && form.type==='gasto' && !editing;
   const rec=form.receipt||(editing&&editing.receipt);
-  return `<h3 class="sec cardhead" onclick="toggleCard('formCard',event)">${secTitle('plus', editing?'Editar movimiento':'Nuevo movimiento')}<span class="secright"><span class="chev">${svgIco('chevron')}</span></span></h3>
+  return `<h3 class="sec cardhead" onclick="toggleCard('formCard',event)">${secTitle('plus', editing?'Editar movimiento':'Nuevo movimiento')}<span class="secright"><button class="flipbtn" onclick="openQuick()" aria-label="Registro rápido por voz">${svgIco('mic')}</button><span class="chev">${svgIco('chevron')}</span></span></h3>
     <div class="cardbody"><div class="cbwrap"><div class="typetoggle"><button data-t="gasto" class="${form.type==='gasto'?'on':''}" onclick="setFormType('gasto')">Gasto</button><button data-t="ingreso" class="${form.type==='ingreso'?'on':''}" onclick="setFormType('ingreso')">Ingreso</button></div>
     <div class="frow">
       <div class="field"><label>Monto</label><div class="amountwrap"><span>$</span><input id="f_amount" class="num money-in" inputmode="numeric" placeholder="0" value="${editing?groupThousands(editing.amount):''}"></div></div>
